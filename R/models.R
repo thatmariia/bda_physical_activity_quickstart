@@ -35,14 +35,13 @@ get_kmeans_df <- function(df, km) {
 
 #' Define options for model training, which are used to
 #' construct different model configurations
-#' @param weights The weights for the model (NULL for default)
 #' @return A data frame with the training options
-define_train_options <- function(weights = NULL) {
+define_train_options <- function() {
     opts <- expand_grid(
         method = "multinom",
         term_mode = c("nomode", "inter", "add"),
         term = c("noterm", "km_cluster", "km_dist"),
-        weight = if (!is.null(weights)) c("weighted", "unweighted") else "unweighted"
+        weighting = c("unweighted", "weighted")
     ) |>
         filter(!(term_mode == "nomode" & term != "noterm")) |>
         filter(!(term == "noterm" & term_mode != "nomode"))
@@ -57,69 +56,75 @@ define_train_options <- function(weights = NULL) {
 #' @param method The method for training
 #' @param term_mode The term mode option
 #' @param term The term option
-#' @param weight The weight option
+#' @param weighting The weighting option
 #' @return A list of specifications for fitting a model
 get_fit_spec <- function(
     df, df_km, df_km_dists,
-    method, term_mode, term, weight
+    method, term_mode, term, weighting
 ) {
-    feat_names <- names(df_feat(df))
-    dist_names <- names(df_km_dists |> select(-aggr_activity))
+    data <- df_feat(df) |>
+        mutate(aggr_activity = df$aggr_activity)
 
-    # Select data and formula
-    if (term_mode == "nomode" || term == "noterm") {
-        data <- df
-        formula <- aggr_activity ~ .
-    } else if (term_mode == "inter" && term == "km_cluster") {
-        data <- df |> df_feat() |>
-            bind_cols(
-                cluster = df_km$cluster,
-                aggr_activity = df$aggr_activity
-            )
-        formula <- aggr_activity ~ . * cluster
-    } else if (term_mode == "inter" && term == "km_dist") {
-        data <- df |> df_feat() |>
-            bind_cols(
-                df_km_dists |> select(-aggr_activity),
-                aggr_activity = df$aggr_activity
-            )
-        # ==> START LLM https://chatgpt.com/share/6aaab81f-4d5c-83eb-bfac-021950015cd3
-        rhs <- paste0(
-            "(", paste(feat_names, collapse = " + "), ") * ",
-            "(", paste(dist_names, collapse = " + "), ")"
-        )
-        formula <- as.formula(paste("aggr_activity ~", rhs))
-        # ==> END LLM
-    } else if (term_mode == "add" && term == "km_cluster") {
-        data <- df |> df_feat() |>
-            bind_cols(
-                cluster = df_km$cluster,
-                aggr_activity = df$aggr_activity
-            )
-        formula <- aggr_activity ~ .
-    } else if (term_mode == "add" && term == "km_dist") {
-        data <- df |> df_feat() |>
-            bind_cols(
-                df_km_dists |> select(-aggr_activity),
-                aggr_activity = df$aggr_activity
-            )
-        formula <- aggr_activity ~ .
+    if (weighting == "weighted") {
+        data <- data |> mutate(weights = df$activity_confidence)
     } else {
-        stop("Invalid combination of term_mode and term")
+        data <- data |> mutate(weights = 1)
     }
 
-    key <- paste(method, term_mode, term, weight, sep = "_")
-    return(list(data = data, formula = formula, method = method, weight = weight, key = key))
+    # Simple case
+    if (term_mode == "nomode" || term == "noterm") {
+        formula <- aggr_activity ~ (. - weights)
+        key <- paste(method, weighting, sep = "_")
+        return(list(data = data, formula = formula, method = method, key = key))
+    }
+
+    key <- paste(method, term_mode, term, weighting, sep = "_")
+
+    if (term == "km_cluster") {
+        data <- data |> bind_cols(cluster = df_km$cluster)
+
+        if (term_mode == "add") {
+            formula <- aggr_activity ~ (. - weights)
+        } else if (term_mode == "inter") {
+            formula <- aggr_activity ~ (. - weights) * cluster
+        } else {
+            stop("Invalid term_mode for km_cluster")
+        }
+        return(list(data = data, formula = formula, method = method, key = key))
+    }
+
+    if (term == "km_dist") {
+        data <- data |> bind_cols(df_km_dists |> select(-aggr_activity))
+
+        if (term_mode == "add") {
+            formula <- aggr_activity ~ (. - weights)
+        } else if (term_mode == "inter") {
+            feat_names <- names(df_feat(df))
+            dist_names <- names(df_km_dists |> select(-aggr_activity))
+            # ==> START LLM https://chatgpt.com/share/6aaab81f-4d5c-83eb-bfac-021950015cd3
+            rhs <- paste0(
+                "(", paste(feat_names, collapse = " + "), ") * ",
+                "(", paste(dist_names, collapse = " + "), ")"
+            )
+            formula <- as.formula(paste("aggr_activity ~", rhs))
+            # ==> END LLM
+        } else {
+            stop("Invalid term_mode for km_dist")
+        }
+        return(list(data = data, formula = formula, method = method, key = key))
+    }
+
+    stop("Invalid options")
+    return(list(data = data, formula = formula, method = method, key = key))
 }
 
 #' Preprocess and fit a list of models based on the provided data and options
 #' @param df The input data frame
-#' @param weights The weights for the model (NULL for default)
 #' @param number The number of folds for cross-validation
 #' @param repeats The number of times to repeat the cross-validation
 #' @param nstart The number of random starts for k-means
 #' @return A list of fitted models
-fit_models <- function(df, weights = NULL, number = 2, repeats = 1, nstart = 2) {
+fit_models <- function(df, number = 2, repeats = 1, nstart = 2) {
     # Define train control with repeated cross-validation
     trcntr <- caret::trainControl(method = "repeatedcv", number = number, repeats = repeats, verboseIter = FALSE)
 
@@ -130,13 +135,13 @@ fit_models <- function(df, weights = NULL, number = 2, repeats = 1, nstart = 2) 
     df_km_dists <- get_kmeans_dist_df(df, km_fit)
 
     # Define options for training
-    opts <- define_train_options(weights)
+    opts <- define_train_options()
 
     # Get specifications for training models
-    specs <- pmap(opts, \(method, term_mode, term, weight) {
+    specs <- pmap(opts, \(method, term_mode, term, weighting) {
             get_fit_spec(
                 df, df_km, df_km_dists,
-                method, term_mode, term, weight
+                method, term_mode, term, weighting
             )
         }
     )
@@ -148,6 +153,7 @@ fit_models <- function(df, weights = NULL, number = 2, repeats = 1, nstart = 2) 
         model <- caret::train(
             spec$formula,
             data = spec$data,
+            weights = weights,
             method = spec$method,
             trControl = trcntr,
             preProcess = c("nzv", "corr", "center", "scale"),
@@ -168,8 +174,8 @@ fit_models <- function(df, weights = NULL, number = 2, repeats = 1, nstart = 2) 
 #' @param repeats The number of times to repeat the cross-validation
 #' @param nstart The number of random starts for k-means
 #' @return A list of fitted models and their results
-fit_all <- function(df, weights = NULL, number = 2, repeats = 1, nstart = 2) {
-    models <- fit_models(df, weights, number, repeats, nstart)
+fit_all <- function(df, number = 2, repeats = 1, nstart = 2) {
+    models <- fit_models(df, number, repeats, nstart)
 
     results <- data.frame(
         model = names(models),
