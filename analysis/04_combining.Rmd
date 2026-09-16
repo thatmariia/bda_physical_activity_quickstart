@@ -32,23 +32,35 @@ summary(df)
 
 ## Cleaning
 
-We really should check for NA's
+Removing rows with unlabeled epochs ("-").
 
 ```{r}
-sum(is.na(df))
+n_unlabeled_epochs <- sum(df$aggr_activity == "-")
+cat("Number of unlabeled epochs:", n_unlabeled_epochs)
+df <- df |> filter(aggr_activity != "-")
+```
+
+Removing rows with NA values.
+
+```{r}
+n_na <- sum(is.na(df))
+cat("Number of NA values:", n_na)
+df <- df |> drop_na()
 ```
 
 Removing columns unneccessary for fitting.
 
 ```{r}
-df <- df |> select(-epoch, -sampleid, -n_samples)
+df <- df |> select(-epoch, -sampleid)
 ```
 
+Checking if there are any linear combinations within features.
+
 ```{r}
-# df_numeric <- df |> select_if(is.numeric)
-# linear_combos <- caret::findLinearCombos(df_numeric)
-# redundant <- names(df_numeric)[linear_combos$remove]
-# redundant
+df_numeric <- df |> select_if(is.numeric)
+linear_combos <- caret::findLinearCombos(df_numeric)
+redundant <- names(df_numeric)[linear_combos$remove]
+cat("Redundant columns:", paste(redundant, collapse = ", "))
 ```
 
 ## Visualizing features

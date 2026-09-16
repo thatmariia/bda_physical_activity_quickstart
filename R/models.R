@@ -162,7 +162,6 @@ fit_all <- function(df, number = 2, repeats = 1, nstart = 2) {
     models <- fit_models(df, number, repeats, nstart)
 
     results <- data.frame(
-        model = names(models),
         accuracy = sapply(models, function(x) max(x$results$Accuracy)),
         kappa = sapply(models, function(x) max(x$results$Kappa))
     )

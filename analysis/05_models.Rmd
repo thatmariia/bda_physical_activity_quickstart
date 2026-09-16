@@ -5,48 +5,39 @@ df <- readRDS(file.path(output_dir, "df.rds"))
 ```
 
 
-# 4. Model fitting
+# Model fitting
 
-You should maybe think about the following issues
-
-- What do you do with the unlabelled epochs? That is, the epochs that are marked with `-`?
-- For the competition submision you should only provide predictions for the epochs defined in the sample submission file
-- Should you remove the epochs that do not consist of 128 samples (i.e., `n ≠ 128` in the above data frame)?
+Training models on the processed training data.
 
 ```{r}
-df_small <- df |> slice(1:1000)
-fit_all(df_small)
+df_small <- df |> slice(1:500)
+fitted_models <- fit_all(df_small)
+fitted_models$results
+```
+
+Finding the best model (based on accuracy).
+
+```{r}
+best_model <- fitted_models$models[[which.max(fitted_models$results$accuracy)]]
+best_model_name <- names(fitted_models$models)[[which.max(fitted_models$results$accuracy)]]
+cat("Best model:", best_model_name, "\n")
+```
+
+## Visualizing results
+
+Visualizing results of different models to see how the "best" model compares to the rest.
+
+```{r}
+ggplot(fitted_models$results, aes(x = accuracy, y = kappa)) +
+  geom_point(data = fitted_models$results[best_model_name, ], size = 5) +
+  geom_point(aes(color = rownames(fitted_models$results)))
 ```
 
 ```{r}
-## Fitting classifier models from ISLR Chapter 4
-##
-
-# Remove non-feature columns
-myData2 <- myData |> select(-c("epoch", "sampleid", "user_id", "exp_id", "n_samples"))
-
-preproc <- preProcess(myData2, method = c("nzv", "corr", "center", "scale", "medianImpute"), thresh = 0.95)
-preproc
-
-myData2 <- predict(preproc, myData2)
-
-lincomb <- myData2 |>
-  select_if(is.numeric) |>
-  findLinearCombos()
-redundant <- names(myData2 |> select_if(is.numeric))[lincomb$remove]
-myData2 <- myData2 |> select(-all_of(redundant))
-
-# ...
-# ... Your modeling code goes here
-# ...
-
-trcntr <- trainControl("cv", 5)
-fit_lda <- train(activity ~ mean_X2 + sd_X1 + AR1_X1_lag1, myData2, method = "lda", trControl = trcntr)
-fit_lda
+rs <- resamples(fitted_models$models)
+bwplot(rs, col = ifelse(rs$models == best_model_name, "red", "black"))
 ```
 
 ```{r, include = FALSE}
-saveRDS(preproc, file.path(output_dir, "preproc.rds"))
-saveRDS(redundant, file.path(output_dir, "redundant.rds"))
-saveRDS(fit_lda, file.path(output_dir, "fit_lda.rds"))
+saveRDS(best_model, file.path(output_dir, "best_model.rds"))
 ```
