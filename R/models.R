@@ -62,59 +62,43 @@ get_fit_spec <- function(
     df, df_km, df_km_dists,
     method, term_mode, term, weighting
 ) {
-    data <- df_feat(df) |>
-        mutate(aggr_activity = df$aggr_activity)
-
-    if (weighting == "weighted") {
-        data <- data |> mutate(weights = df$activity_confidence)
-    } else {
-        data <- data |> mutate(weights = 1)
-    }
-
-    # Simple case
-    if (term_mode == "nomode" || term == "noterm") {
-        formula <- aggr_activity ~ (. - weights)
-        key <- paste(method, weighting, sep = "_")
-        return(list(data = data, formula = formula, method = method, key = key))
-    }
-
     key <- paste(method, term_mode, term, weighting, sep = "_")
 
-    if (term == "km_cluster") {
-        data <- data |> bind_cols(cluster = df_km$cluster)
+    data <- df_feat(df) |>
+        mutate(aggr_activity = df$aggr_activity) |>
+        mutate(
+            weights = if (weighting == "weighted") {
+                df$activity_confidence
+            } else {
+                rep(1, nrow(df))
+            }
+        )
 
-        if (term_mode == "add") {
-            formula <- aggr_activity ~ (. - weights)
-        } else if (term_mode == "inter") {
-            formula <- aggr_activity ~ (. - weights) * cluster
-        } else {
-            stop("Invalid term_mode for km_cluster")
-        }
-        return(list(data = data, formula = formula, method = method, key = key))
+    # add terms
+    data <- switch(term,
+        "noterm" = data,
+        "km_cluster" = data |> bind_cols(cluster = df_km$cluster),
+        "km_dist" = data |> bind_cols(df_km_dists |> select(-aggr_activity)),
+        data
+    )
+
+    # add term mode
+    if (term_mode == "inter" && term == "km_cluster") {
+        formula <- aggr_activity ~ (. - weights) * cluster
+    } else if (term_mode == "inter" && term == "km_dist") {
+        feat_names <- names(df_feat(df))
+        dist_names <- names(df_km_dists |> select(-aggr_activity))
+        # ==> START LLM https://chatgpt.com/share/6aaab81f-4d5c-83eb-bfac-021950015cd3
+        rhs <- paste0(
+            "(", paste(feat_names, collapse = " + "), ") * ",
+            "(", paste(dist_names, collapse = " + "), ")"
+        )
+        formula <- as.formula(paste("aggr_activity ~", rhs))
+        # ==> END LLM
+    } else {
+        formula <- aggr_activity ~ (. - weights)
     }
 
-    if (term == "km_dist") {
-        data <- data |> bind_cols(df_km_dists |> select(-aggr_activity))
-
-        if (term_mode == "add") {
-            formula <- aggr_activity ~ (. - weights)
-        } else if (term_mode == "inter") {
-            feat_names <- names(df_feat(df))
-            dist_names <- names(df_km_dists |> select(-aggr_activity))
-            # ==> START LLM https://chatgpt.com/share/6aaab81f-4d5c-83eb-bfac-021950015cd3
-            rhs <- paste0(
-                "(", paste(feat_names, collapse = " + "), ") * ",
-                "(", paste(dist_names, collapse = " + "), ")"
-            )
-            formula <- as.formula(paste("aggr_activity ~", rhs))
-            # ==> END LLM
-        } else {
-            stop("Invalid term_mode for km_dist")
-        }
-        return(list(data = data, formula = formula, method = method, key = key))
-    }
-
-    stop("Invalid options")
     return(list(data = data, formula = formula, method = method, key = key))
 }
 
