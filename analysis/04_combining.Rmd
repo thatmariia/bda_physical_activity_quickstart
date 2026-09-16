@@ -44,6 +44,13 @@ Removing columns unneccessary for fitting.
 df <- df |> select(-epoch, -sampleid, -n_samples)
 ```
 
+```{r}
+# df_numeric <- df |> select_if(is.numeric)
+# linear_combos <- caret::findLinearCombos(df_numeric)
+# redundant <- names(df_numeric)[linear_combos$remove]
+# redundant
+```
+
 ## Visualizing features
 
 ```{r}

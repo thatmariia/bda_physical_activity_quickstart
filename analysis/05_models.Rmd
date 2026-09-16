@@ -4,6 +4,7 @@ for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
 df <- readRDS(file.path(output_dir, "df.rds"))
 ```
 
+
 # 4. Model fitting
 
 You should maybe think about the following issues
@@ -11,6 +12,11 @@ You should maybe think about the following issues
 - What do you do with the unlabelled epochs? That is, the epochs that are marked with `-`?
 - For the competition submision you should only provide predictions for the epochs defined in the sample submission file
 - Should you remove the epochs that do not consist of 128 samples (i.e., `n ≠ 128` in the above data frame)?
+
+```{r}
+df_small <- df |> slice(1:1000)
+fit_all(df_small)
+```
 
 ```{r}
 ## Fitting classifier models from ISLR Chapter 4
