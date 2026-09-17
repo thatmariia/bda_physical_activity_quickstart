@@ -30,7 +30,7 @@ plot_signal_df_spectrograms <- function(x) {
     geom_line() +
     scale_y_log10() +
     facet_wrap(~activity) +
-    labs(x = "Frequency (Hz)", y = "Spectral density (log scale)", colour = "Signal channel")
+    labs(x = "Frequency", y = "Spectral density (log scale)", colour = "Signal channel")
 }
 
 # Plot a spectrogram of the accelerometer signal, separated by activity
@@ -59,11 +59,11 @@ Now we have a tidy data frame with the spectrum of each signal in each epoch.
 
 ```{r}
 # Compute frequency-domain features per epoch for acc
-spect_features_acc <- get_frequency_domain_features_acc(acc_spect_df)
+spect_features_acc <- get_frequency_domain_features(acc_spect_df)
 head(spect_features_acc)
 
 # Compute frequency-domain features per epoch for gyro
-spect_features_gyro <- get_frequency_domain_features_gyro(gyro_spect_df)
+spect_features_gyro <- get_frequency_domain_features(gyro_spect_df)
 head(spect_features_gyro)
 ```
 
