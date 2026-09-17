@@ -44,11 +44,11 @@ plot_signal_df_hist(gyro_df)
 
 ```{r}
 # Compute features per epoch for acc
-time_features_acc <- get_time_domain_features_acc(acc_df)
+time_features_acc <- get_time_domain_features(acc_df)
 head(time_features_acc)
 
 # Compute features per epoch for gyro
-time_features_gyro <- get_time_domain_features_gyro(gyro_df)
+time_features_gyro <- get_time_domain_features(gyro_df)
 head(time_features_gyro)
 
 # Plot the confidence levels for each activity label

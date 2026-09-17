@@ -15,11 +15,11 @@ parse_and_features <- function(filename, dir, sample_labels, n_samples_per_epoch
     params <- get_file_params(filename)
     if (params$sensor_type == "acc") {
         # Process accelerometer data
-        features_time <- get_time_domain_features_acc(df, n_samples_per_epoch)
+        features_time <- get_time_domain_features(df, n_samples_per_epoch, sample_rate)
         features_freq <- get_frequency_domain_features_acc(df_freq)
     } else if (params$sensor_type == "gyro") {
         # Process gyroscope data
-        features_time <- get_time_domain_features_gyro(df, n_samples_per_epoch)
+        features_time <- get_time_domain_features(df, n_samples_per_epoch, sample_rate)
         features_freq <- get_frequency_domain_features_gyro(df_freq)
     }
 

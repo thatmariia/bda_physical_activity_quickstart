@@ -48,11 +48,21 @@ compute_spectrum <- function(signal, gaussian_sigma = 3) {
 #' including the frequency bins and corresponding spectral densities for each signal.
 convert_signal_to_spectrum_df <- function(signal_df, n_samples_per_epoch = 128, sample_rate = 50) {
   spectrum_df <- signal_df |>
-    mutate(epoch = sampleid %/% n_samples_per_epoch) |>
-    filter(n() == n_samples_per_epoch, .by = epoch) |>
+    mutate(
+      epoch = sampleid %/% n_samples_per_epoch,
+      position = sampleid %% n_samples_per_epoch
+    ) |>
     reframe(
       {
-        sp <- spectrum(cbind(X1, X2, X3), span = 15, plot = FALSE)
+        # ==> START LLM https://chatgpt.com/share/6aab570f-9e38-83ed-a64e-fcd83ae13599
+        n_missing <- n_samples_per_epoch - n()
+        x <- cbind(X1, X2, X3)
+        if (n_missing > 0) {
+          x <- rbind(x, matrix(0, nrow = n_missing, ncol = 3))
+        }
+        # ==> END LLM
+
+        sp <- spectrum(x, span = 15, plot = FALSE)
         tibble(
           freq = sp$freq, # cycles per sample
           freq_hz = sp$freq * sample_rate, # cycles per second (Hz)
