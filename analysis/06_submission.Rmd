@@ -2,7 +2,7 @@
 source(here::here("setup.R"))
 for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
 df_test <- readRDS(file.path(output_dir, "df_test.rds"))
-best_model <- readRDS(file.path(output_dir, "best_model.rds"))
+best_fit <- readRDS(file.path(output_dir, "best_fit.rds"))
 ```
 
 # Submissions
@@ -10,7 +10,8 @@ best_model <- readRDS(file.path(output_dir, "best_model.rds"))
 ## Predicting test data
 
 ```{r}
-predictions <- predict(best_model, df_test)
+df_test_pp <- make_data(df_test |> select(-Id), best_fit$key, best_fit$pp_utils)
+predictions <- predict(best_fit$model, df_test_pp)
 ```
 
 ## Formatting the submission file

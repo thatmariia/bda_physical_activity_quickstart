@@ -11,7 +11,7 @@ df_train <- readRDS(file.path(output_dir, "df_train.rds"))
 Training models on the processed training data.
 
 ```{r}
-df_small <- df_train |> slice(1:500)
+df_small <- df_train |> slice(1:200)
 fitted_models <- fit_all(df_small)
 fitted_models$results
 ```
@@ -19,9 +19,14 @@ fitted_models$results
 Finding the best model (based on accuracy).
 
 ```{r}
-best_model <- fitted_models$models[[which.max(fitted_models$results$accuracy)]]
-best_model_name <- names(fitted_models$models)[[which.max(fitted_models$results$accuracy)]]
-cat("Best model:", best_model_name, "\n")
+best_idx <- which.max(fitted_models$results$accuracy)
+best_fit <- list(
+    model = fitted_models$models[[best_idx]],
+    key = names(fitted_models$models)[[best_idx]],
+    pp_utils = fitted_models$pp_utils
+)
+
+cat("Best model:", best_fit$key, "\n")
 ```
 
 ## Visualizing training results
@@ -30,15 +35,15 @@ Visualizing results of different models to see how the "best" model compares to 
 
 ```{r}
 ggplot(fitted_models$results, aes(x = accuracy, y = kappa)) +
-  geom_point(data = fitted_models$results[best_model_name, ], size = 5) +
+  geom_point(data = fitted_models$results[best_fit$key, ], size = 5) +
   geom_point(aes(color = rownames(fitted_models$results)))
 ```
 
 ```{r}
 rs <- resamples(fitted_models$models)
-bwplot(rs, col = ifelse(rs$models == best_model_name, "red", "black"))
+bwplot(rs, col = ifelse(rs$models == best_fit$key, "red", "black"))
 ```
 
 ```{r, include = FALSE}
-saveRDS(best_model, file.path(output_dir, "best_model.rds"))
+saveRDS(best_fit, file.path(output_dir, "best_fit.rds"))
 ```
