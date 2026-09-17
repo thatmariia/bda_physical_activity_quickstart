@@ -9,6 +9,10 @@ df_train <- readRDS(file.path(output_dir, "df_train.rds"))
 
 Training models on the processed training data.
 
+```{r, fold = "Relevant functions", code = readLines(here::here("R", "models.R"))}
+source(here::here("R", "models.R"))
+```
+
 ```{r}
 # ==> START LLM https://chatgpt.com/share/6aab8916-1138-83eb-b17f-1e899eec877c
 library(doParallel)

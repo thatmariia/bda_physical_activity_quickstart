@@ -12,6 +12,10 @@ gyro_df <- readRDS(file.path(output_dir, "gyro_df.rds"))
 As we looked at histograms of the signal values, we can also look at the spectragrams of the signals.
 The spectrum is a representation of the signal in the frequency domain, which can reveal periodic patterns that are not obvious in the time domain.
 
+```{r, fold = "Relevant functions", code = readLines(here::here("R", "utils_frequency.R"))}
+source(here::here("R", "utils_frequency.R"))
+```
+
 ```{r}
 plot_signal_df_spectrograms <- function(x) {
   gaussian_sigma <- 3
@@ -56,6 +60,10 @@ head(acc_spect_df)
 Now we have a tidy data frame with the spectrum of each signal in each epoch.
 
 ## Feature extraction
+
+```{r, fold = "Relevant functions", code = readLines(here::here("R", "features_frequency.R"))}
+source(here::here("R", "features_frequency.R"))
+```
 
 ```{r}
 # Compute frequency-domain features per epoch for acc
