@@ -1,19 +1,16 @@
 ```{r, include = FALSE}
 source(here::here("setup.R"))
 for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
-sample_labels <- readRDS(file.path(output_dir, "sample_labels.rds"))
-preproc <- readRDS(file.path(output_dir, "preproc.rds"))
-redundant <- readRDS(file.path(output_dir, "redundant.rds"))
-fit_lda <- readRDS(file.path(output_dir, "fit_lda.rds"))
+df_test <- readRDS(file.path(output_dir, "df_test.rds"))
+best_model <- readRDS(file.path(output_dir, "best_model.rds"))
 ```
 
-# 5. Submissions
+# Submissions
 
-The test data can be imported in the same way as the training data, you only have to change `Train` to `Test` in the directory path:
+## Predicting test data
 
 ```{r}
-filenames_test <- list.files(test_dir, "^acc", full.names = TRUE)
-filenames_test
+predictions <- predict(best_model, df_test)
 ```
 
 ## Formatting the submission file
@@ -21,31 +18,10 @@ filenames_test
 To help you turning your predictions into the right format, the following code can help.
 
 ```{r}
-myTestData <- map_dfr(filenames_test, extractTimeDomainFeatures, sample_labels)
-
-# Apply data transformation
-myTestData2 <- predict(preproc, myTestData)
-myTestData2 <- myTestData2 |> select(-all_of(redundant))
-
-# Apply best model to predict activity
-predicted_activity <- predict(fit_lda, myTestData2)
-
-# Writing the test predictions to CSV file
-myTestData |>
-  # Set `activity` to the predicted activity
-  mutate(activity = predicted_activity) |>
-  # prepend "user" and "exp" to user_id and exp_id
-  mutate(
-    user_id = paste(ifelse(user_id < 10, "user0", "user"), user_id, sep = ""),
-    exp_id = paste(ifelse(exp_id < 10, "exp0", "exp"), exp_id, sep = "")
-  ) |>
-  # unite columnes user_id, exp_id and sample_id into a string
-  # separated by "_" and store it in the new variable `Id`
-  unite(Id, user_id, exp_id, sampleid) |>
-  # retain only the `Id` and  predictions
-  select(Id, Predicted = activity) |>
-  # write to file
-  write_csv(file.path(output_dir, "submission.csv"))
+df_test_predicted <- df_test |>
+  mutate(Predicted = predictions) |>
+  select(Id, Predicted)
+write_csv(df_test_predicted, file.path(output_dir, "submission.csv"))
 
 # Check the result: print first 20 lines in the submission file
 cat(readLines(file.path(output_dir, "submission.csv"), 20), sep = "\n")

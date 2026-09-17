@@ -108,7 +108,7 @@ df_train <- df_train |> drop_na()
 Removing columns unneccessary for fitting.
 
 ```{r}
-df_train <- df_train |> select(-epoch, -sampleid)
+df_train <- df_train |> select(-epoch, -sampleid, -user_id, -exp_id)
 ```
 
 Checking if there are any linear combinations within features.
