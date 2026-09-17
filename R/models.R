@@ -139,7 +139,7 @@ get_fit_spec <- function(
 #' @return A list of fitted models
 fit_models <- function(df, number = 2, repeats = 1, nstart = 2) {
   # Define train control with repeated cross-validation
-  trcntr <- caret::trainControl(method = "repeatedcv", number = number, repeats = repeats, verboseIter = FALSE)
+  trcntr <- caret::trainControl(method = "repeatedcv", number = number, repeats = repeats, verboseIter = FALSE, allowParallel = TRUE)
 
   # Precompute relevant data
   pp <- fit_preprocess(df)

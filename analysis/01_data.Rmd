@@ -3,6 +3,8 @@ source(here::here("setup.R"))
 for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
 ```
 
+**Source: [github.com/thatmariia/bda_physical_activity_quickstart/tree/round1](https://github.com/thatmariia/bda_physical_activity_quickstart/tree/round1)**
+
 # Reading the data
 
 * The format of signal files is `<sensor>_exp<XX>_user<YY>.txt`, where `<sensor>` is either `acc` (accelerometer) or `gyro` (gyroscope), `<XX>` is experiment ID, and `<YY>` is user ID.

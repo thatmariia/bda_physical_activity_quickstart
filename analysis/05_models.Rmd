@@ -10,9 +10,17 @@ df_train <- readRDS(file.path(output_dir, "df_train.rds"))
 Training models on the processed training data.
 
 ```{r}
-# df_small <- df_train |> slice(1:500)
-fitted_models <- suppressWarnings(fit_all(df_train))
+# ==> START LLM https://chatgpt.com/share/6aab8916-1138-83eb-b17f-1e899eec877c
+library(doParallel)
+cl <- makePSOCKcluster(parallel::detectCores() - 1)
+registerDoParallel(cl)
+# ==> END LLM
+
+fitted_models <- suppressWarnings(fit_all(df_train, number = 5, repeats = 3, nstart = 10))
 fitted_models$results
+
+stopCluster(cl)
+registerDoSEQ()
 ```
 
 Finding the best model (based on accuracy).
