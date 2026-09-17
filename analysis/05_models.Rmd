@@ -17,20 +17,20 @@ Define options for model training, which are used to construct different model c
 # Define the options for model training
 # only use a subset now to save time
 opts <- expand_grid(
-    method = c("multinom"),
-    term_mode = c("nomode", "add"),
-    term = c("noterm", "km_cluster", "km_dist"),
-    weighting = c("unweighted")
-    # method = c("multinom", "lda", "naive_bayes"),
-    # term_mode = c("nomode", "inter", "add"),
-    # term = c("noterm", "km_cluster", "km_dist"),
-    # weighting = c("unweighted", "weighted")
-  ) |>
-    filter(!(term_mode == "nomode" & term != "noterm")) |>
-    filter(!(term == "noterm" & term_mode != "nomode")) |>
-    filter(!(weighting == "weighted" & method != "multinom")) |>
-    # filter(!(method == "knn" & term != "noterm")) |>
-    filter(term_mode != "inter") # For now, taking too long
+  method = c("multinom"),
+  term_mode = c("nomode", "add"),
+  term = c("noterm", "km_cluster", "km_dist"),
+  weighting = c("unweighted")
+  # method = c("multinom", "lda", "naive_bayes"),
+  # term_mode = c("nomode", "inter", "add"),
+  # term = c("noterm", "km_cluster", "km_dist"),
+  # weighting = c("unweighted", "weighted")
+) |>
+  filter(!(term_mode == "nomode" & term != "noterm")) |>
+  filter(!(term == "noterm" & term_mode != "nomode")) |>
+  filter(!(weighting == "weighted" & method != "multinom")) |>
+  # filter(!(method == "knn" & term != "noterm")) |>
+  filter(term_mode != "inter") # For now, taking too long
 ```
 
 ## Training models
