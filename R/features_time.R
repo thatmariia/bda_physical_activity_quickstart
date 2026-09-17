@@ -73,7 +73,7 @@ rotation <- function(x, fs) {
 }
 
 #' Compute the absolute integrated rotation of a signal
-abs_rotations <- function(x, fs) {
+abs_rotation <- function(x, fs) {
   sum(abs(x)) / fs
 }
 

@@ -1,7 +1,6 @@
 ```{r, include = FALSE}
 source(here::here("setup.R"))
 for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
-df <- readRDS(file.path(output_dir, "df.rds"))
 df_train <- readRDS(file.path(output_dir, "df_train.rds"))
 ```
 
@@ -11,7 +10,7 @@ df_train <- readRDS(file.path(output_dir, "df_train.rds"))
 Training models on the processed training data.
 
 ```{r}
-df_small <- df_train |> slice(1:200)
+df_small <- df_train |> slice(1:50)
 fitted_models <- fit_all(df_small)
 fitted_models$results
 ```
