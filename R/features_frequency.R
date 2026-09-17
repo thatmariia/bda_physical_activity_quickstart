@@ -121,7 +121,6 @@ band_power_ratio <- function(freq, spec, lb, ub, sample_rate = 50) {
     return(0)
   }
   return(sum(spec[keep]) / sum(spec))
-
 }
 
 #' Extract frequency domain features from a spectrum data frame,

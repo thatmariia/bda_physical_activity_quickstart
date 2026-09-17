@@ -109,7 +109,7 @@ zero_cross_rate <- function(x) {
 
 #' Compute the angle of the gravity vector
 gravity_angle <- function(x, y, z) {
-  mag = sqrt(mean(x)^2 + mean(y)^2 + mean(z)^2)
+  mag <- sqrt(mean(x)^2 + mean(y)^2 + mean(z)^2)
   return(acos(mean(x) / mag) * 180 / pi)
 }
 
