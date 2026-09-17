@@ -9,20 +9,54 @@ df_train <- readRDS(file.path(output_dir, "df_train.rds"))
 
 Training models on the processed training data.
 
-```{r, fold = "Relevant functions", code = readLines(here::here("R", "models.R"))}
+## Define options for training models
+
+Define options for model training, which are used to construct different model configurations.
+
+```{r}
+# Define the options for model training
+# only use a subset now to save time
+opts <- expand_grid(
+    method = c("multinom"),
+    term_mode = c("nomode", "add"),
+    term = c("noterm", "km_cluster", "km_dist"),
+    weighting = c("unweighted")
+    # method = c("multinom", "lda", "naive_bayes"),
+    # term_mode = c("nomode", "inter", "add"),
+    # term = c("noterm", "km_cluster", "km_dist"),
+    # weighting = c("unweighted", "weighted")
+  ) |>
+    filter(!(term_mode == "nomode" & term != "noterm")) |>
+    filter(!(term == "noterm" & term_mode != "nomode")) |>
+    filter(!(weighting == "weighted" & method != "multinom")) |>
+    # filter(!(method == "knn" & term != "noterm")) |>
+    filter(term_mode != "inter") # For now, taking too long
+```
+
+## Training models
+
+```{r, fold = "Relevant functions for preprocessing and constructing data", code = readLines(here::here("R", "data_construct.R"))}
+source(here::here("R", "models.R"))
+```
+
+```{r, fold = "Relevant functions for fitting models", code = readLines(here::here("R", "models.R"))}
 source(here::here("R", "models.R"))
 ```
 
 ```{r}
+# Set up parallel processing to speed up model fitting
 # ==> START LLM https://chatgpt.com/share/6aab8916-1138-83eb-b17f-1e899eec877c
 library(doParallel)
-cl <- makePSOCKcluster(parallel::detectCores() - 1)
+n_cores <- parallel::detectCores() # when running locally might want to set to n-1
+cl <- makePSOCKcluster(n_cores)
 registerDoParallel(cl)
 # ==> END LLM
 
-fitted_models <- suppressWarnings(fit_all(df_train, number = 5, repeats = 3, nstart = 10))
+# Fit models
+fitted_models <- suppressWarnings(fit_all(df_train, opts, number = 5, repeats = 3, nstart = 10))
 fitted_models$results
 
+# Clean up parallel processing
 stopCluster(cl)
 registerDoSEQ()
 ```
