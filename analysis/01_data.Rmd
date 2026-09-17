@@ -50,6 +50,10 @@ tail(sample_labels)
 
 To begin, we'll focus on 2 single files: the accelerometer and gyroscope signals for participant `user01` in trial `exp01`.
 
+```{r, fold = "Relevant functions", code = readLines(here::here("R", "data.R"))}
+source(here::here("R", "data.R"))
+```
+
 ```{r}
 username <- 1
 expname <- 1
@@ -115,6 +119,10 @@ Additionally, we will compute a confidence score for the activity label of each 
 which is the proportion of samples in that epoch that have the most common activity label.
 
 **Each epoch becomes one row in a tidy data frame, with features that summarise the signal in that epoch.**
+
+```{r, fold = "Relevant functions", code = readLines(here::here("R", "segmentation.R"))}
+source(here::here("R", "segmentation.R"))
+```
 
 ```{r, include = FALSE}
 saveRDS(sample_labels, file.path(output_dir, "sample_labels.rds"))

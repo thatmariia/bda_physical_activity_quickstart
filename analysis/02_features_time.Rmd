@@ -42,6 +42,10 @@ plot_signal_df_hist(gyro_df)
 
 ## Feature extraction
 
+```{r, fold = "Relevant functions", code = readLines(here::here("R", "features_time.R"))}
+source(here::here("R", "features_time.R"))
+```
+
 ```{r}
 # Compute features per epoch for acc
 time_features_acc <- get_time_domain_features(acc_df)

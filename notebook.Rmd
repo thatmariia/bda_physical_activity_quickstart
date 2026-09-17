@@ -7,6 +7,17 @@ jupyter:
     language: R
 ---
 
+```{r, include = FALSE}
+# Show chunks with a `fold` option as collapsible sections with that title
+knitr::knit_hooks$set(fold = function(before, options) {
+  if (before) {
+    paste0("\n\n<details><summary>", options$fold, "</summary>\n\n")
+  } else {
+    "\n\n</details>\n\n"
+  }
+})
+```
+
 # Physical activity recognition
 
 <!-- Team, goal of the competition -->
@@ -15,13 +26,6 @@ jupyter:
 source(here::here("setup.R"))
 ```
 
-```{r functions, code = xfun::read_all(list.files(here::here("R"), full.names = TRUE))}
-for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
-```
-
 ```{r notebooks, child = list.files(here::here("analysis"), full.names = TRUE)}
 ```
 
-# Conclusion
-
-<!-- Summary, division of labour, credits -->
