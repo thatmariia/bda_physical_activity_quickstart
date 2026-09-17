@@ -63,7 +63,7 @@ get_kmeans_clusters <- function(df, km) {
 #' @return A data frame with the training options
 define_train_options <- function() {
   opts <- expand_grid(
-    method = c("multinom", "lda", "qda", "knn", "naive_bayes"),
+    method = c("multinom", "lda", "naive_bayes"),
     term_mode = c("nomode", "inter", "add"),
     term = c("noterm", "km_cluster", "km_dist"),
     weighting = c("unweighted", "weighted")
@@ -71,7 +71,8 @@ define_train_options <- function() {
     filter(!(term_mode == "nomode" & term != "noterm")) |>
     filter(!(term == "noterm" & term_mode != "nomode")) |>
     filter(!(weighting == "weighted" & method != "multinom")) |>
-    filter(!(method == "knn" & term != "noterm"))
+    # filter(!(method == "knn" & term != "noterm")) |>
+    filter(term_mode != "inter") # For now, taking too long
   return(opts)
 }
 
@@ -171,8 +172,8 @@ fit_models <- function(df, number = 2, repeats = 1, nstart = 2) {
       weights = weights,
       method = spec$method,
       trControl = trcntr,
-      MaxNWts = 10000,
-      maxit = 1000,
+      MaxNWts = 25000,
+      maxit = 300,
       trace = FALSE
     )
     models[[spec$key]] <- model

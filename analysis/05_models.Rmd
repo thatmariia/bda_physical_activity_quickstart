@@ -10,8 +10,8 @@ df_train <- readRDS(file.path(output_dir, "df_train.rds"))
 Training models on the processed training data.
 
 ```{r}
-df_small <- df_train |> slice(1:50)
-fitted_models <- fit_all(df_small)
+# df_small <- df_train |> slice(1:500)
+fitted_models <- suppressWarnings(fit_all(df_train))
 fitted_models$results
 ```
 
@@ -40,7 +40,7 @@ ggplot(fitted_models$results, aes(x = accuracy, y = kappa)) +
 
 ```{r}
 rs <- resamples(fitted_models$models)
-bwplot(rs, col = ifelse(rs$models == best_fit$key, "red", "black"))
+bwplot(rs)
 ```
 
 ```{r, include = FALSE}

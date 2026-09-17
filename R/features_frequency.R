@@ -8,6 +8,47 @@ mean_frequency <- function(freq, spec) {
   return(mean_freq)
 }
 
+#' Compute the standard deviation of the frequency of a signal
+sd_frequency <- function(freq, spec) {
+  mean_freq <- mean_frequency(freq, spec)
+  delta_freq <- freq[2] - freq[1]
+  normalizing_constant <- sum(spec * delta_freq)
+  if (normalizing_constant == 0) {
+    return(0)
+  }
+  ds <- (freq - mean_freq)^2
+  var_freq <- sum(ds * spec * delta_freq) / normalizing_constant
+  return(sqrt(var_freq))
+}
+
+#' Compute the skewness of the frequency of a signal
+skew_frequency <- function(freq, spec) {
+  mean_freq <- mean_frequency(freq, spec)
+  sd_freq <- sd_frequency(freq, spec)
+  delta_freq <- freq[2] - freq[1]
+  normalizing_constant <- sum(spec * delta_freq)
+  if (normalizing_constant == 0 || sd_freq == 0) {
+    return(0)
+  }
+  dc <- (freq - mean_freq)^3
+  skew <- sum(dc * spec * delta_freq) / (normalizing_constant * sd_freq^3)
+  return(skew)
+}
+
+#' Compute the kurtosis of the frequency of a signal
+kurtosis_frequency <- function(freq, spec) {
+  mean_freq <- mean_frequency(freq, spec)
+  sd_freq <- sd_frequency(freq, spec)
+  delta_freq <- freq[2] - freq[1]
+  normalizing_constant <- sum(spec * delta_freq)
+  if (normalizing_constant == 0 || sd_freq == 0) {
+    return(0)
+  }
+  df <- (freq - mean_freq)^4
+  kurt <- sum(df * spec * delta_freq) / (normalizing_constant * sd_freq^4)
+  return(kurt)
+}
+
 #' Compute the total power of a signal
 spectral_power <- function(freq, spec) {
   df <- mean(diff(freq))
@@ -52,6 +93,7 @@ spectral_edge_frequency <- function(freq, spec, k = 0.9) {
   return(freq[edge_freq])
 }
 
+
 #' Extract frequency domain features from a spectrum data frame,
 #' which is assumed to be already segmented into epochs
 #' @param spectrum_df A data frame containing the spectrum data with columns: epoch, freq, spec1, spec2, ...
@@ -63,6 +105,9 @@ get_frequency_domain_features <- function(spectrum_df) {
       # Signal 1
       dom_freq1 = freq[which.max(spec1)],
       mean_freq1 = mean_frequency(freq, spec1),
+      sd_freq1 = sd_frequency(freq, spec1),
+      skew_freq1 = skew_frequency(freq, spec1),
+      kurt_freq1 = kurtosis_frequency(freq, spec1),
       entropy1 = spectral_entropy(spec1),
       bandwidth1 = spectral_bandwidth(freq, spec1),
       edge_freq1 = spectral_edge_frequency(freq, spec1),
@@ -70,6 +115,9 @@ get_frequency_domain_features <- function(spectrum_df) {
       # Signal 2
       dom_freq2 = freq[which.max(spec2)],
       mean_freq2 = mean_frequency(freq, spec2),
+      sd_freq2 = sd_frequency(freq, spec2),
+      skew_freq2 = skew_frequency(freq, spec2),
+      kurt_freq2 = kurtosis_frequency(freq, spec2),
       entropy2 = spectral_entropy(spec2),
       bandwidth2 = spectral_bandwidth(freq, spec2),
       edge_freq2 = spectral_edge_frequency(freq, spec2),
@@ -77,6 +125,9 @@ get_frequency_domain_features <- function(spectrum_df) {
       # Signal 3
       dom_freq3 = freq[which.max(spec3)],
       mean_freq3 = mean_frequency(freq, spec3),
+      sd_freq3 = sd_frequency(freq, spec3),
+      skew_freq3 = skew_frequency(freq, spec3),
+      kurt_freq3 = kurtosis_frequency(freq, spec3),
       entropy3 = spectral_entropy(spec3),
       bandwidth3 = spectral_bandwidth(freq, spec3),
       edge_freq3 = spectral_edge_frequency(freq, spec3),
