@@ -1,3 +1,7 @@
+# ==========================================================
+# == FUNCTIONS FOR SEGMENTATION OF ACTIVITIES
+# ==========================================================
+
 #' Compute the most common value (mode) of a vector
 #' @param x A vector of values
 #' @return The most common value in the vector

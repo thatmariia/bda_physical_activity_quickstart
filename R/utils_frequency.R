@@ -1,3 +1,7 @@
+# ==========================================================
+# == FUNCTIONS FOR FREQUENCY DOMAIN ANALYSIS
+# ==========================================================
+
 #' Apply Gaussian smoothing to a numeric vector
 #' @param x A numeric vector to be smoothed
 #' @param sigma The standard deviation of the Gaussian kernel (default is 2)
@@ -12,17 +16,6 @@ gaussian_smooth <- function(x, sigma = 2) {
   smooth_x <- stats::filter(x, filter = weights, sides = 2)
   return(smooth_x)
 }
-
-#   apply(
-#     x,
-#     2,
-#     \(column) stats::filter(
-#       column,
-#       filter = weights,
-#       sides = 2
-#     )
-#   )
-# }
 
 #' Compute the spectrum of a signal and optionally apply Gaussian smoothing
 #' @param signal A numeric vector representing the signal

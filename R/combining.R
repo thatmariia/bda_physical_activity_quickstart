@@ -1,3 +1,7 @@
+# ==========================================================
+# == FUNCTIONS FOR COMBINING FEATURES
+# ==========================================================
+
 #' Parse a file and extract joined time and frequency domain features.
 #'
 #' @param dir The directory containing the file.

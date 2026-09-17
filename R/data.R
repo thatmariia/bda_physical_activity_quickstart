@@ -1,4 +1,6 @@
-# Helper functions
+# ==========================================================
+# == FUNCTIONS FOR DATA PARSING
+# ==========================================================
 
 #' Create a data frame with signal data and corresponding activity labels
 #' @param exp_id The experiment ID (integer)
@@ -58,15 +60,4 @@ load_and_parse_file <- function(dir, filename, sample_labels) {
   signal_data <- load_signal(file_path)
   signal_df <- get_signal_df(params$exp_id, params$user_id, signal_data, sample_labels)
   return(signal_df)
-}
-
-#' Get the range of user IDs and experiment IDs in a directory
-#' @param dir The directory to search
-#' @return A list with two elements: user_ids and exp_ids
-range_users_exps <- function(dir) {
-  params <- params_from_files(dir)
-  return(list(
-    user_ids = unique(params$user_id),
-    exp_ids = unique(params$exp_id)
-  ))
 }

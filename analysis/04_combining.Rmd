@@ -92,9 +92,9 @@ cat("Number of rows in test data:", nrow(df_test))
 Removing rows with unlabeled epochs ("-").
 
 ```{r}
-n_unlabeled_epochs <- sum(df_train$aggr_activity == "-")
-cat("Number of unlabeled epochs:", n_unlabeled_epochs)
-df_train <- df_train |> filter(aggr_activity != "-")
+# n_unlabeled_epochs <- sum(df_train$aggr_activity == "-")
+# cat("Number of unlabeled epochs:", n_unlabeled_epochs)
+# df_train <- df_train |> filter(aggr_activity != "-")
 ```
 
 Removing rows with NA values.

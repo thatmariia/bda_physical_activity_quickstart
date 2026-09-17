@@ -1,4 +1,6 @@
-# Modelling functions
+# ==========================================================
+# == FUNCTIONS FOR DEFINING AND TRAINING MODELS
+# ==========================================================
 
 #' Get feature data excluding outcomes and confidence cols
 #' @param df The input data frame
@@ -63,10 +65,14 @@ get_kmeans_clusters <- function(df, km) {
 #' @return A data frame with the training options
 define_train_options <- function() {
   opts <- expand_grid(
-    method = c("multinom", "lda", "naive_bayes"),
-    term_mode = c("nomode", "inter", "add"),
+    method = c("multinom"),
+    term_mode = c("nomode", "add"),
     term = c("noterm", "km_cluster", "km_dist"),
-    weighting = c("unweighted", "weighted")
+    weighting = c("unweighted")
+    # method = c("multinom", "lda", "naive_bayes"),
+    # term_mode = c("nomode", "inter", "add"),
+    # term = c("noterm", "km_cluster", "km_dist"),
+    # weighting = c("unweighted", "weighted")
   ) |>
     filter(!(term_mode == "nomode" & term != "noterm")) |>
     filter(!(term == "noterm" & term_mode != "nomode")) |>
