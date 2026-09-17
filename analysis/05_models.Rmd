@@ -20,9 +20,9 @@ Finding the best model (based on accuracy).
 ```{r}
 best_idx <- which.max(fitted_models$results$accuracy)
 best_fit <- list(
-    model = fitted_models$models[[best_idx]],
-    key = names(fitted_models$models)[[best_idx]],
-    pp_utils = fitted_models$pp_utils
+  model = fitted_models$models[[best_idx]],
+  key = names(fitted_models$models)[[best_idx]],
+  pp_utils = fitted_models$pp_utils
 )
 
 cat("Best model:", best_fit$key, "\n")

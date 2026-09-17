@@ -1,4 +1,3 @@
-
 #' Apply Gaussian smoothing to a numeric vector
 #' @param x A numeric vector to be smoothed
 #' @param sigma The standard deviation of the Gaussian kernel (default is 2)

@@ -42,7 +42,7 @@ load_signal <- function(file_path) {
 get_file_params <- function(filename) {
   # extract parts of the filename <sensor>_exp<XX>_user<YY>.txt
   user_id <- str_extract(filename, "(?<=user)\\d+") |> as.integer()
-  exp_id  <- str_extract(filename, "(?<=exp)\\d+") |> as.integer()
+  exp_id <- str_extract(filename, "(?<=exp)\\d+") |> as.integer()
   sensor_type <- str_extract(filename, "^(acc|gyro)")
   return(list(user_id = user_id, exp_id = exp_id, sensor_type = sensor_type))
 }

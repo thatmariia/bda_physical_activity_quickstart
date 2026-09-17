@@ -10,12 +10,12 @@ We need to process all of them and combine the resulting data frames in one big 
 
 ```{r}
 all_filenames_train <- list(
-    "acc" = list.files(train_dir, pattern = "^acc"),
-    "gyro" = list.files(train_dir, pattern = "^gyro")
+  "acc" = list.files(train_dir, pattern = "^acc"),
+  "gyro" = list.files(train_dir, pattern = "^gyro")
 )
 all_filenames_test <- list(
-    "acc" = list.files(test_dir, pattern = "^acc"),
-    "gyro" = list.files(test_dir, pattern = "^gyro")
+  "acc" = list.files(test_dir, pattern = "^acc"),
+  "gyro" = list.files(test_dir, pattern = "^gyro")
 )
 cat("Number of training files:", length(all_filenames_train[["acc"]]), "acc,", length(all_filenames_train[["gyro"]]), "gyro", "\n")
 cat("Number of test files:", length(all_filenames_test[["acc"]]), "acc,", length(all_filenames_test[["gyro"]]), "gyro")
@@ -26,22 +26,22 @@ n_samples_per_epoch <- 128
 sample_rate <- 50
 
 df_train_acc <- map_dfr(
-    all_filenames_train[["acc"]],
-    parse_and_features,
-    dir = train_dir,
-    sample_labels = sample_labels,
-    n_samples_per_epoch = n_samples_per_epoch,
-    sample_rate = sample_rate,
-    .progress = "Parsing all acc training files, gathering features"
+  all_filenames_train[["acc"]],
+  parse_and_features,
+  dir = train_dir,
+  sample_labels = sample_labels,
+  n_samples_per_epoch = n_samples_per_epoch,
+  sample_rate = sample_rate,
+  .progress = "Parsing all acc training files, gathering features"
 )
 df_train_gyro <- map_dfr(
-    all_filenames_train[["gyro"]],
-    parse_and_features,
-    dir = train_dir,
-    sample_labels = sample_labels,
-    n_samples_per_epoch = n_samples_per_epoch,
-    sample_rate = sample_rate,
-    .progress = "Parsing all gyro training files, gathering features"
+  all_filenames_train[["gyro"]],
+  parse_and_features,
+  dir = train_dir,
+  sample_labels = sample_labels,
+  n_samples_per_epoch = n_samples_per_epoch,
+  sample_rate = sample_rate,
+  .progress = "Parsing all gyro training files, gathering features"
 )
 df_train <- df_train_acc |> inner_join(df_train_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples", "aggr_activity", "activity_confidence"))
 head(df_train)
@@ -52,22 +52,22 @@ For predicting on the test set later, we also construct a dataframe for test fea
 
 ```{r}
 df_test_acc <- map_dfr(
-    all_filenames_test[["acc"]],
-    parse_and_features,
-    dir = test_dir,
-    sample_labels = sample_labels,
-    n_samples_per_epoch = n_samples_per_epoch,
-    sample_rate = sample_rate,
-    .progress = "Parsing all acc test files, gathering features"
+  all_filenames_test[["acc"]],
+  parse_and_features,
+  dir = test_dir,
+  sample_labels = sample_labels,
+  n_samples_per_epoch = n_samples_per_epoch,
+  sample_rate = sample_rate,
+  .progress = "Parsing all acc test files, gathering features"
 ) |> select(-aggr_activity, -activity_confidence)
 df_test_gyro <- map_dfr(
-    all_filenames_test[["gyro"]],
-    parse_and_features,
-    dir = test_dir,
-    sample_labels = sample_labels,
-    n_samples_per_epoch = n_samples_per_epoch,
-    sample_rate = sample_rate,
-    .progress = "Parsing all gyro test files, gathering features"
+  all_filenames_test[["gyro"]],
+  parse_and_features,
+  dir = test_dir,
+  sample_labels = sample_labels,
+  n_samples_per_epoch = n_samples_per_epoch,
+  sample_rate = sample_rate,
+  .progress = "Parsing all gyro test files, gathering features"
 ) |> select(-aggr_activity, -activity_confidence)
 df_test <- df_test_acc |> inner_join(df_test_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples"))
 ```
@@ -78,11 +78,11 @@ Removing unnecessary columns and adding a key column.
 
 ```{r}
 df_test <- df_test |>
-    mutate(
-        user_id = paste(ifelse(user_id < 10, "user0", "user"), user_id, sep=""),
-        exp_id = paste(ifelse(exp_id < 10, "exp0", "exp"), exp_id, sep="")
-    ) |>
-    unite(Id, user_id, exp_id, sampleid)
+  mutate(
+    user_id = paste(ifelse(user_id < 10, "user0", "user"), user_id, sep = ""),
+    exp_id = paste(ifelse(exp_id < 10, "exp0", "exp"), exp_id, sep = "")
+  ) |>
+  unite(Id, user_id, exp_id, sampleid)
 df_test <- df_test |> select(-epoch)
 cat("Number of rows in test data:", nrow(df_test))
 ```

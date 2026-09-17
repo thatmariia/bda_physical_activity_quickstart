@@ -52,7 +52,7 @@ To begin, we'll focus on 2 single files: the accelerometer and gyroscope signals
 
 ```{r}
 username <- 1
-expname  <- 1
+expname <- 1
 
 # Load the accelerometer signal for user01 in exp01
 file_path_acc <- get_file_path(train_dir, "acc", expname, username)

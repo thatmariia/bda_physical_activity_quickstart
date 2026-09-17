@@ -21,7 +21,9 @@ peak_power <- function(freq, spec) {
 
 #' Compute the spectral entropy of a signal
 spectral_entropy <- function(spec) {
-  if (length(spec) == 0 || sum(spec) == 0) return(0)
+  if (length(spec) == 0 || sum(spec) == 0) {
+    return(0)
+  }
   spec <- spec[spec > 0]
   spec <- spec / sum(spec)
   return(-sum(spec * log2(spec)) / log2(length(spec)))
@@ -31,7 +33,9 @@ spectral_entropy <- function(spec) {
 spectral_bandwidth <- function(freq, spec) {
   mean_freq <- mean_frequency(freq, spec)
   tot <- sum(spec)
-  if (tot == 0) return(0)
+  if (tot == 0) {
+    return(0)
+  }
   ds <- (freq - mean_freq)^2
   return(sqrt(sum(ds * spec) / tot))
 }
@@ -39,7 +43,9 @@ spectral_bandwidth <- function(freq, spec) {
 #' Compute the spectral edge frequency of a signal
 spectral_edge_frequency <- function(freq, spec, k = 0.9) {
   tot <- sum(spec)
-  if (tot == 0) return(0)
+  if (tot == 0) {
+    return(0)
+  }
   cumsum_spec <- cumsum(spec)
   threshold <- k * tot
   edge_freq <- which(cumsum_spec >= threshold)[1]
@@ -74,5 +80,5 @@ get_frequency_domain_features <- function(spectrum_df) {
       entropy3 = spectral_entropy(spec3),
       bandwidth3 = spectral_bandwidth(freq, spec3),
       edge_freq3 = spectral_edge_frequency(freq, spec3),
-  )
+    )
 }

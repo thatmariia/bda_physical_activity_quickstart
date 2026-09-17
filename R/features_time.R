@@ -39,7 +39,7 @@ diff_start_end <- function(x, k = 0.1) {
 
 #' Compute the difference in orientation between three signals
 diff_orientation <- function(x, y, z) {
-  diffs = c(
+  diffs <- c(
     diff_start_end(x),
     diff_start_end(y),
     diff_start_end(z)
