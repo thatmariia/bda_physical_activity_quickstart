@@ -86,29 +86,7 @@ get_time_domain_features_gyro <- function(signal_df, n_samples_per_epoch = 128) 
       # ...
 
       # Keep track of epoch lengths (some epochs are less than 128 samples)
-      n_samples = n()
+      n_samples = n(),
     )
   return(time_domain_features)
-}
-
-extractTimeDomainFeatures <- function(filename, sample_labels) {
-  # extract user and experimental run ID's from file name
-  username <- str_extract(filename, "(?<=user)\\d+") |> as.integer()
-  expname <- str_extract(filename, "(?<=exp)\\d+") |> as.integer()
-
-  # import the sensor signals from the file
-  user01 <- read_delim(filename,
-    delim = " ", col_names = FALSE, progress = TRUE,
-    col_types = "ddd"
-  )
-
-
-  # merge signals with labels
-  user_df <-
-    tibble(userid = username, trial = expname, sampleid = seq.int(0, nrow(user01) - 1)) |>
-    bind_cols(user01) |>
-    left_join(sample_labels, by = c("userid", "trial", "sampleid"))
-
-  usertimedom <- get_time_domain_features(user_df)
-  usertimedom
 }

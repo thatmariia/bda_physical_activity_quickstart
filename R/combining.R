@@ -23,7 +23,11 @@ parse_and_features <- function(filename, dir, sample_labels, n_samples_per_epoch
         features_freq <- get_frequency_domain_features_gyro(df_freq)
     }
 
-    # Inner join features by epoch
-    features <- inner_join(features_time, features_freq, by = "epoch")
+    # Left join features by epoch
+    features <- left_join(features_time, features_freq, by = "epoch")
+
+    # Add cols for user_id and exp_id from params
+    features <- features |> mutate(user_id = params$user_id, exp_id = params$exp_id)
+
     return(features)
 }

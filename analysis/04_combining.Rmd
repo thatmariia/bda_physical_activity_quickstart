@@ -9,55 +9,112 @@ sample_labels <- readRDS(file.path(output_dir, "sample_labels.rds"))
 We need to process all of them and combine the resulting data frames in one big data frame.
 
 ```{r}
-all_filenames <- list.files(train_dir, pattern = "^(acc|gyro)")
-cat("Number of files:", length(all_filenames))
+all_filenames_train <- list(
+    "acc" = list.files(train_dir, pattern = "^acc"),
+    "gyro" = list.files(train_dir, pattern = "^gyro")
+)
+all_filenames_test <- list(
+    "acc" = list.files(test_dir, pattern = "^acc"),
+    "gyro" = list.files(test_dir, pattern = "^gyro")
+)
+cat("Number of training files:", length(all_filenames_train[["acc"]]), "acc,", length(all_filenames_train[["gyro"]]), "gyro", "\n")
+cat("Number of test files:", length(all_filenames_test[["acc"]]), "acc,", length(all_filenames_test[["gyro"]]), "gyro")
 ```
 
 ```{r}
 n_samples_per_epoch <- 128
 sample_rate <- 50
 
-df <- map_dfr(
-    all_filenames,
+df_train_acc <- map_dfr(
+    all_filenames_train[["acc"]],
     parse_and_features,
     dir = train_dir,
     sample_labels = sample_labels,
     n_samples_per_epoch = n_samples_per_epoch,
     sample_rate = sample_rate,
-    .progress = "Parsing all files, gathering features"
+    .progress = "Parsing all acc training files, gathering features"
 )
-head(df)
-summary(df)
+df_train_gyro <- map_dfr(
+    all_filenames_train[["gyro"]],
+    parse_and_features,
+    dir = train_dir,
+    sample_labels = sample_labels,
+    n_samples_per_epoch = n_samples_per_epoch,
+    sample_rate = sample_rate,
+    .progress = "Parsing all gyro training files, gathering features"
+)
+df_train <- df_train_acc |> inner_join(df_train_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples", "aggr_activity", "activity_confidence"))
+head(df_train)
+summary(df_train)
 ```
 
-## Cleaning
+For predicting on the test set later, we also construct a dataframe for test features.
+
+```{r}
+df_test_acc <- map_dfr(
+    all_filenames_test[["acc"]],
+    parse_and_features,
+    dir = test_dir,
+    sample_labels = sample_labels,
+    n_samples_per_epoch = n_samples_per_epoch,
+    sample_rate = sample_rate,
+    .progress = "Parsing all acc test files, gathering features"
+) |> select(-aggr_activity, -activity_confidence)
+df_test_gyro <- map_dfr(
+    all_filenames_test[["gyro"]],
+    parse_and_features,
+    dir = test_dir,
+    sample_labels = sample_labels,
+    n_samples_per_epoch = n_samples_per_epoch,
+    sample_rate = sample_rate,
+    .progress = "Parsing all gyro test files, gathering features"
+) |> select(-aggr_activity, -activity_confidence)
+df_test <- df_test_acc |> inner_join(df_test_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples"))
+```
+
+## Formatting testing data
+
+Removing unnecessary columns and adding a key column.
+
+```{r}
+df_test <- df_test |>
+    mutate(
+        user_id = paste(ifelse(user_id < 10, "user0", "user"), user_id, sep=""),
+        exp_id = paste(ifelse(exp_id < 10, "exp0", "exp"), exp_id, sep="")
+    ) |>
+    unite(Id, user_id, exp_id, sampleid)
+df_test <- df_test |> select(-epoch)
+cat("Number of rows in test data:", nrow(df_test))
+```
+
+## Cleaning training data
 
 Removing rows with unlabeled epochs ("-").
 
 ```{r}
-n_unlabeled_epochs <- sum(df$aggr_activity == "-")
+n_unlabeled_epochs <- sum(df_train$aggr_activity == "-")
 cat("Number of unlabeled epochs:", n_unlabeled_epochs)
-df <- df |> filter(aggr_activity != "-")
+df_train <- df_train |> filter(aggr_activity != "-")
 ```
 
 Removing rows with NA values.
 
 ```{r}
-n_na <- sum(is.na(df))
+n_na <- sum(is.na(df_train))
 cat("Number of NA values:", n_na)
-df <- df |> drop_na()
+df_train <- df_train |> drop_na()
 ```
 
 Removing columns unneccessary for fitting.
 
 ```{r}
-df <- df |> select(-epoch, -sampleid)
+df_train <- df_train |> select(-epoch, -sampleid)
 ```
 
 Checking if there are any linear combinations within features.
 
 ```{r}
-df_numeric <- df |> select_if(is.numeric)
+df_numeric <- df_train |> select_if(is.numeric)
 linear_combos <- caret::findLinearCombos(df_numeric)
 redundant <- names(df_numeric)[linear_combos$remove]
 cat("Redundant columns:", paste(redundant, collapse = ", "))
@@ -66,7 +123,7 @@ cat("Redundant columns:", paste(redundant, collapse = ", "))
 ## Visualizing features
 
 ```{r}
-df |>
+df_train |>
     filter(activity_confidence > 0) |>
     pivot_longer(cols = -c(activity_confidence, aggr_activity), names_to = "feature", values_to = "value") |>
     ggplot(aes(value, color = aggr_activity)) +
@@ -77,5 +134,6 @@ df |>
 Now the data are turned into a tidy format with features that can be used in any of the algorithms.
 
 ```{r, include = FALSE}
-saveRDS(df, file.path(output_dir, "df.rds"))
+saveRDS(df_train, file.path(output_dir, "df_train.rds"))
+saveRDS(df_test, file.path(output_dir, "df_test.rds"))
 ```
