@@ -13,6 +13,9 @@ get_fit_spec <- function(
   # Add terms (uses term option)
   data <- make_data(df, key, pp_utils, TRUE)
 
+  maxNWts = 25000 # 1000
+  maxit = 100
+
   # Add weights (uses weighting option)
   data <- data |>
     mutate(
@@ -40,7 +43,7 @@ get_fit_spec <- function(
     formula <- aggr_activity ~ (. - weights)
   }
 
-  return(list(data = data, formula = formula, method = method, key = key))
+  return(list(data = data, formula = formula, method = method, MaxNWts = maxNWts, maxit = maxit, key = key))
 }
 
 #' Preprocess and fit a list of models based on the provided data and options
@@ -77,8 +80,8 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
       weights = weights,
       method = spec$method,
       trControl = trcntr,
-      MaxNWts = 25000,
-      maxit = 300,
+      MaxNWts = spec$MaxNWts,
+      maxit = spec$maxit,
       trace = FALSE
     )
     models[[spec$key]] <- model
