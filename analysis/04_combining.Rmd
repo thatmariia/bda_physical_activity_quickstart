@@ -8,7 +8,7 @@ sample_labels <- readRDS(file.path(output_dir, "sample_labels.rds"))
 
 We need to process all of them and combine the resulting data frames in one big data frame.
 
-```{r, fold = "Relevant functions", code = readLines(here::here("R", "combining.R"))}
+```{r, fold = "Relevant functions for combining data", code = readLines(here::here("R", "combining.R"))}
 source(here::here("R", "combining.R"))
 ```
 
@@ -38,6 +38,7 @@ df_train_acc <- map_dfr(
   sample_rate = sample_rate,
   .progress = "Parsing all acc training files, gathering features"
 )
+
 df_train_gyro <- map_dfr(
   all_filenames_train[["gyro"]],
   parse_and_features,
@@ -47,6 +48,7 @@ df_train_gyro <- map_dfr(
   sample_rate = sample_rate,
   .progress = "Parsing all gyro training files, gathering features"
 )
+
 df_train <- df_train_acc |> inner_join(df_train_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples", "aggr_activity", "activity_confidence"))
 head(df_train)
 summary(df_train)
@@ -64,6 +66,7 @@ df_test_acc <- map_dfr(
   sample_rate = sample_rate,
   .progress = "Parsing all acc test files, gathering features"
 ) |> select(-aggr_activity, -activity_confidence)
+
 df_test_gyro <- map_dfr(
   all_filenames_test[["gyro"]],
   parse_and_features,
@@ -73,6 +76,7 @@ df_test_gyro <- map_dfr(
   sample_rate = sample_rate,
   .progress = "Parsing all gyro test files, gathering features"
 ) |> select(-aggr_activity, -activity_confidence)
+
 df_test <- df_test_acc |> inner_join(df_test_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples"))
 ```
 
@@ -87,19 +91,12 @@ df_test <- df_test |>
     exp_id = paste(ifelse(exp_id < 10, "exp0", "exp"), exp_id, sep = "")
   ) |>
   unite(Id, user_id, exp_id, sampleid)
+
 df_test <- df_test |> select(-epoch)
 cat("Number of rows in test data:", nrow(df_test))
 ```
 
 ## Cleaning training data
-
-Removing rows with unlabeled epochs ("-").
-
-```{r}
-# n_unlabeled_epochs <- sum(df_train$aggr_activity == "-")
-# cat("Number of unlabeled epochs:", n_unlabeled_epochs)
-# df_train <- df_train |> filter(aggr_activity != "-")
-```
 
 Removing rows with NA values.
 
@@ -123,7 +120,7 @@ linear_combos <- caret::findLinearCombos(df_numeric)
 redundant <- names(df_numeric)[linear_combos$remove]
 cat("Number of linear combinations found:", length(redundant), "\n")
 cat("Redundant columns:", paste(redundant, collapse = ", "))
-# remove redundant columns
+# Remove redundant columns from both training and testing data
 df_train <- df_train |> select(-all_of(redundant))
 df_test <- df_test |> select(-all_of(redundant))
 ```
@@ -131,6 +128,7 @@ df_test <- df_test |> select(-all_of(redundant))
 ## Visualizing features
 
 ```{r}
+# Too many features now for this viz
 # df_train |>
 #     filter(activity_confidence > 0) |>
 #     pivot_longer(cols = -c(activity_confidence, aggr_activity), names_to = "feature", values_to = "value") |>

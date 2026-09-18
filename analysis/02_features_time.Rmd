@@ -42,7 +42,11 @@ plot_signal_df_hist(gyro_df)
 
 ## Feature extraction
 
-```{r, fold = "Relevant functions", code = readLines(here::here("R", "features_time.R"))}
+```{r, fold = "Relevant functions for segmentation of activities", code = readLines(here::here("R", "segmentation.R"))}
+source(here::here("R", "segmentation.R"))
+```
+
+```{r, fold = "Relevant functions for time domain feature extraction", code = readLines(here::here("R", "features_time.R"))}
 source(here::here("R", "features_time.R"))
 ```
 
