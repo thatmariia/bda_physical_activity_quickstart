@@ -296,9 +296,6 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       slope_mag = slope(acc_mag),
       diff_mag = diff_start_end(acc_mag),
       rot_mag = rotation(acc_mag, sample_rate),
-      rot_abs_mag = abs_rotation(acc_mag, sample_rate),
-      pos_mag = pos_area(acc_mag, sample_rate),
-      neg_mag = neg_area(acc_mag, sample_rate),
 
       # Relationships
       ar_lag1_X1X2 = lagged_cor(X1, X2, lag = 1),

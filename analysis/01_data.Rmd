@@ -16,29 +16,12 @@ In practice, this means reading the signals (each row = one time point) and assi
 
 ## Import Activity labels
 
+```{r, fold = "Relevant functions for label parsing", code = readLines(here::here("R", "labels.R"))}
+source(here::here("R", "labels.R"))
+```
+
 ```{r}
-# Import the activity labels file
-act_labels <- read.table(
-  file.path(data_dir, "activity_labels.txt"),
-  header = FALSE, col.names = c("code", "activity")
-)
-
-# Import the train labels file that contains the activity intervals for each trial and user
-labels0 <- read_delim(file.path(train_dir, "labels_train.txt"),
-  delim = " ",
-  col_names = c("trial", "userid", "act_code", "start", "end"), col_types = "iiiii"
-)
-
-# Join the activity labels to the labels data frame
-labels <- labels0 |> left_join(act_labels, by = c(act_code = "code"))
-
-# Expand the labels data frame to have one row per sample
-sample_labels <- labels |>
-  mutate(segment = row_number()) |> # identify each separate activity interval
-  reframe(
-    sampleid = seq.int(start, end), # expand start:end into all sample IDs
-    .by = c(trial, userid, act_code, activity, segment)
-  )
+sample_labels <- get_sample_labels(data_dir, "activity_labels.txt", train_dir, "labels_train.txt")
 
 # Check the result
 cat("The sample_labels data frame has", nrow(sample_labels), "rows and", ncol(sample_labels), "columns.\n")
