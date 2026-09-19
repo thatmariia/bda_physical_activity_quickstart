@@ -43,11 +43,10 @@ plot_signal_df_hist(gyro_df)
 |---|---|
 | `mean_*`, `median_*` | average signal, direction of gravity, median robust to outliers |
 | `sd_*`, `var_*` | spread of the signal |
-| `min_*`, `max_*`, `range_*` | range of movement |
+| `min_*`, `max_*` | range of movement |
 | `rms_*` | signal energy |
 | `q05_*`, `q25_*`, `q75_*`, `q95_*` | shape of the distribution |
-| `iqr_*` | more robust measure of spread than `sd_*` |
-| `var_dom_*`, `var_rat_*` | how much of the movement is along this axis |
+| `var_rat_*` | how much of the movement is along this axis |
 | `skew_*` | asymmetry of the distribution |
 | `kurtosis_*` | tailedness of the distribution |
 | `ar1_*`, `ar2_*` | autocorrelations at lags 1 and 2 |
@@ -56,7 +55,7 @@ plot_signal_df_hist(gyro_df)
 | `diff_*` | direction of a transition: change from start to end of epoch |
 | `rot_*` | net integral; for gyro, net rotation angle |
 | `rot_abs_*` | total amount of movement, regardless of direction |
-| `pos_*`, `neg_*`, `rot_asym_*` | rotations in each direction and their asymmetry |
+| `rot_asym_*` | the asymmetry of rotations in each direction |
 | `zcr_*` | zero crossing rate, how often the signal changes sign |
 | `grav_*` | angle between axis and gravity |
 | `grav_range_*` | how much the angle varies within the epoch |
@@ -68,11 +67,10 @@ plot_signal_df_hist(gyro_df)
 | Feature | Relevance |
 |---|---|
 | `mean_mag`, `median_mag`, `rsm_mag` | overall acceleration level |
-| `sd_mag`, `var_mag`, `iqr_mag`, `min_mag`, `max_mag`, `range_mag`, `q*_mag` | movement intensity regardless of orientation |
+| `sd_mag`, `var_mag`, `min_mag`, `max_mag`, `q*_mag` | movement intensity regardless of orientation |
 | `skew_mag`, `kurtosis_mag` | impact pattern |
 | `ar1_lag*_mag` | smoothness of overall movement |
 | `mean_abs_diff_mag`, `max_abs_diff_mag`, `slope_mag`, `diff_mag` | abruptness and trend of overall movement |
-| `rot_mag` | integral |
 </details>
 
 <details>
@@ -80,7 +78,6 @@ plot_signal_df_hist(gyro_df)
 | Feature | Relevance |
 |---|---|
 | `ar_lag*_* | lagged correlations between signals |
-| `cor_*` | correlation between signals |
 | `sma` | signal magnitude area |
 | `mean_jerk`, `sd_jerk`, `rms_jerk` | rate of change |
 | `dom` | share of the strongest axis in the overall movement |

@@ -51,7 +51,6 @@ df_train_gyro <- map_dfr(
 
 df_train <- df_train_acc |> inner_join(df_train_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples", "aggr_activity", "activity_confidence"))
 head(df_train)
-summary(df_train)
 ```
 
 For predicting on the test set later, we also construct a dataframe for test features.

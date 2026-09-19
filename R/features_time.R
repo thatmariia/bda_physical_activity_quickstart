@@ -79,20 +79,10 @@ abs_rotation <- function(x, fs) {
   sum(abs(x)) / fs
 }
 
-#' Compute the positive area of a signal
-pos_area <- function(x, fs) {
-  sum(pmax(0, x)) / fs
-}
-
-#' Compute the negative area of a signal
-neg_area <- function(x, fs) {
-  sum(abs(pmin(0, x))) / fs
-}
-
 #' Compute the asymmetry of the rotation of a signal
 rotation_asym <- function(x, fs) {
-  pos <- pos_area(x, fs)
-  neg <- neg_area(x, fs)
+  pos <- sum(pmax(0, x)) / fs
+  neg <- sum(abs(pmin(0, x))) / fs
   if (pos + neg == 0) {
     return(0)
   }
@@ -104,7 +94,8 @@ zero_cross_rate <- function(x) {
   if (length(x) < 2) {
     return(0)
   }
-  sum(diff(x) * diff(x, lag = 1) < 0) / (length(x) - 1)
+  side <- sign(x - mean(x))
+  return(mean(side[-1] != side[-length(side)]))
 }
 
 #' Compute the angle of the gravity vector
@@ -136,11 +127,6 @@ gravity_angle_change <- function(x, y, z, k = 0.1) {
 #' Compute the angle between two signals
 sigangle <- function(x, y) {
   atan2(mean(x), mean(y)) * 180 / pi
-}
-
-#' Compute the var dominance of a signal
-var_dominance <- function(x, y, z) {
-  var(x) / (var(y) + var(z))
 }
 
 #' Compute the variance ratio of a signal
@@ -175,17 +161,13 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       mean_X1 = mean(X1),
       median_X1 = median(X1),
       sd_X1 = sd(X1),
-      var_X1 = var(X1),
       min_X1 = min(X1),
       max_X1 = max(X1),
-      range_X1 = max(X1) - min(X1),
       rms_X1 = rms(X1),
       q05_X1 = quantile(X1, 0.05),
       q25_X1 = quantile(X1, 0.25),
       q75_X1 = quantile(X1, 0.75),
       q95_X1 = quantile(X1, 0.95),
-      iqr_X1 = IQR(X1),
-      var_dom_X1 = var_dominance(X1, X2, X3),
       var_rat_X1 = var_ratio(X1, X2, X3),
       skew_X1 = e1071::skewness(X1),
       kurtosis_X1 = e1071::kurtosis(X1),
@@ -197,8 +179,6 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       diff_X1 = diff_start_end(X1),
       rot_X1 = rotation(X1, sample_rate),
       rot_abs_X1 = abs_rotation(X1, sample_rate),
-      pos_X1 = pos_area(X1, sample_rate),
-      neg_X1 = neg_area(X1, sample_rate),
       rot_asym_X1 = rotation_asym(X1, sample_rate),
       zcr_X1 = zero_cross_rate(X1),
       grav_range_X1 = gravity_angle_range(X1, acc_mag),
@@ -209,17 +189,13 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       mean_X2 = mean(X2),
       median_X2 = median(X2),
       sd_X2 = sd(X2),
-      var_X2 = var(X2),
       min_X2 = min(X2),
       max_X2 = max(X2),
-      range_X2 = max(X2) - min(X2),
       rms_X2 = rms(X2),
       q05_X2 = quantile(X2, 0.05),
       q25_X2 = quantile(X2, 0.25),
       q75_X2 = quantile(X2, 0.75),
       q95_X2 = quantile(X2, 0.95),
-      iqr_X2 = IQR(X2),
-      var_dom_X2 = var_dominance(X2, X1, X3),
       var_rat_X2 = var_ratio(X2, X1, X3),
       skew_X2 = e1071::skewness(X2),
       kurtosis_X2 = e1071::kurtosis(X2),
@@ -231,8 +207,6 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       diff_X2 = diff_start_end(X2),
       rot_X2 = rotation(X2, sample_rate),
       rot_abs_X2 = abs_rotation(X2, sample_rate),
-      pos_X2 = pos_area(X2, sample_rate),
-      neg_X2 = neg_area(X2, sample_rate),
       rot_asym_X2 = rotation_asym(X2, sample_rate),
       zcr_X2 = zero_cross_rate(X2),
       grav_range_X2 = gravity_angle_range(X2, acc_mag),
@@ -243,18 +217,14 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       mean_X3 = mean(X3),
       median_X3 = median(X3),
       sd_X3 = sd(X3),
-      var_X3 = var(X3),
       min_X3 = min(X3),
       max_X3 = max(X3),
-      range_X3 = max(X3) - min(X3),
       rms_X3 = rms(X3),
       q05_X3 = quantile(X3, 0.05),
       q25_X3 = quantile(X3, 0.25),
       q75_X3 = quantile(X3, 0.75),
       q95_X3 = quantile(X3, 0.95),
-      iqr_X3 = IQR(X3),
       var_rat_X3 = var_ratio(X3, X1, X2),
-      var_dom_X3 = var_dominance(X3, X1, X2),
       skew_X3 = e1071::skewness(X3),
       kurtosis_X3 = e1071::kurtosis(X3),
       ar1_lag1_X3 = lagged_cor(X3, lag = 1),
@@ -265,8 +235,6 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       diff_X3 = diff_start_end(X3),
       rot_X3 = rotation(X3, sample_rate),
       rot_abs_X3 = abs_rotation(X3, sample_rate),
-      pos_X3 = pos_area(X3, sample_rate),
-      neg_X3 = neg_area(X3, sample_rate),
       rot_asym_X3 = rotation_asym(X3, sample_rate),
       zcr_X3 = zero_cross_rate(X3),
       grav_range_X3 = gravity_angle_range(X3, acc_mag),
@@ -277,16 +245,13 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       mean_mag = mean(acc_mag),
       median_mag = median(acc_mag),
       sd_mag = sd(acc_mag),
-      var_mag = var(acc_mag),
       min_mag = min(acc_mag),
       max_mag = max(acc_mag),
-      range_mag = max(acc_mag) - min(acc_mag),
       rms_mag = rms(acc_mag),
       q05_mag = quantile(acc_mag, 0.05),
       q25_mag = quantile(acc_mag, 0.25),
       q75_mag = quantile(acc_mag, 0.75),
       q95_mag = quantile(acc_mag, 0.95),
-      iqr_mag = IQR(acc_mag),
       skew_mag = e1071::skewness(acc_mag),
       kurtosis_mag = e1071::kurtosis(acc_mag),
       ar1_lag1_mag = lagged_cor(acc_mag, lag = 1),
@@ -295,18 +260,11 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       max_abs_diff_mag = max_abs_diff(acc_mag),
       slope_mag = slope(acc_mag),
       diff_mag = diff_start_end(acc_mag),
-      rot_mag = rotation(acc_mag, sample_rate),
 
       # Relationships
       ar_lag1_X1X2 = lagged_cor(X1, X2, lag = 1),
       ar_lag1_X1X3 = lagged_cor(X1, X3, lag = 1),
       ar_lag1_X2X3 = lagged_cor(X2, X3, lag = 1),
-      cor_X1X2 = cor(X1, X2),
-      cor_X2X1 = cor(X2, X1),
-      cor_X1X3 = cor(X1, X3),
-      cor_X3X1 = cor(X3, X1),
-      cor_X2X3 = cor(X2, X3),
-      cor_X3X2 = cor(X3, X2),
       sma = sma(X1, X2, X3),
       mean_jerk = mean(jerk(X1, X2, X3)),
       sd_jerk = sd(jerk(X1, X2, X3)),
