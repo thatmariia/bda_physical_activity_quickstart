@@ -11,3 +11,11 @@ fit_preprocess <- function(df) {
 apply_preprocess <- function(df, pp) {
   predict(pp, newdata = df_feat(df))
 }
+
+#' Find redundant columns in the data
+find_redundant_cols <- function(df) {
+  df_numeric <- df |> select_if(is.numeric)
+  linear_combos <- caret::findLinearCombos(df_numeric)
+  redundant <- names(df_numeric)[linear_combos$remove]
+  return(redundant)
+}

@@ -124,12 +124,11 @@ df_train_pp  <- apply_preprocess(df_train, pp)
 ```
 
 ```{r}
-df_numeric <- df_train_pp |> select_if(is.numeric)
-linear_combos <- caret::findLinearCombos(df_numeric)
-redundant <- names(df_numeric)[linear_combos$remove]
+redundant <- find_redundant_cols(df_train_pp)
 cat("Number of linear combinations found:", length(redundant), "\n")
-cat("Redundant columns:", paste(redundant, collapse = ", "))
-
+if (length(redundant) > 0) {
+  cat("Redundant columns:", paste(redundant, collapse = ", "))
+}
 # Remove redundant columns from both training and testing data
 df_train <- df_train |> select(-all_of(redundant))
 df_test <- df_test |> select(-all_of(redundant))
