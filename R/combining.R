@@ -31,6 +31,10 @@ parse_and_features <- function(filename_acc, dir, sample_labels, n_samples_per_e
   features_freq_gyro <- get_frequency_domain_features(df_freq_gyro)
   features_joint <- get_joint_features(joint_df, n_samples_per_epoch)
 
+  # Keep the epoch information from the accelerometer only
+  epoch_info <- c("sampleid", "n_samples", "aggr_activity", "activity_confidence")
+  features_time_gyro <- features_time_gyro |> select(-all_of(epoch_info))
+
   # Left join all the features
   time_features <- left_join(features_time_acc, features_time_gyro, by = "epoch", suffix = c("_acc", "_gyro"))
   freq_features <- left_join(features_freq_acc, features_freq_gyro, by = "epoch", suffix = c("_acc", "_gyro"))
