@@ -3,6 +3,7 @@
 # ==========================================================
 
 #' Join acc and gyro signals of one experiment by sample
+#' (from copilot assignment)
 join_sensors <- function(acc_df, gyro_df) {
   inner_join(
     acc_df |> rename(acc_X1 = X1, acc_X2 = X2, acc_X3 = X3),
@@ -12,6 +13,7 @@ join_sensors <- function(acc_df, gyro_df) {
 }
 
 #' Compute the correlation between two signals, 0 if either is constant
+#' (from copilot assignment)
 safe_cor <- function(x, y) {
   if (length(x) < 2 || sd(x) == 0 || sd(y) == 0) {
     return(0)
