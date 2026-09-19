@@ -49,7 +49,11 @@ df_train_gyro <- map_dfr(
   .progress = "Parsing all gyro training files, gathering features"
 )
 
-df_train <- df_train_acc |> inner_join(df_train_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples", "aggr_activity", "activity_confidence"))
+df_train <- inner_join(
+    df_train_acc, df_train_gyro,
+    by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples", "aggr_activity", "activity_confidence"),
+    suffix = c("_acc", "_gyro")
+)
 head(df_train)
 ```
 
@@ -76,7 +80,11 @@ df_test_gyro <- map_dfr(
   .progress = "Parsing all gyro test files, gathering features"
 ) |> select(-aggr_activity, -activity_confidence)
 
-df_test <- df_test_acc |> inner_join(df_test_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples"))
+df_test <- inner_join(
+    df_test_acc, df_test_gyro,
+    by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples"),
+    suffix = c("_acc", "_gyro")
+)
 ```
 
 ## Formatting testing data
