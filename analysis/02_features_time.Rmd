@@ -38,7 +38,7 @@ plot_signal_df_hist(gyro_df)
 ## Features
 
 <details>
-<summary>Per axis and magnitude (`*` is `X1`, `X2`, `X3` or `mag`):</summary>
+<summary>Per axis and magnitude (`*` is `X1`, `X2`, `X3` or `mag`, `dyn_mag`):</summary>
 
 | Feature | Relevance |
 |---|---|
@@ -55,6 +55,11 @@ plot_signal_df_hist(gyro_df)
 | `diff_*` | direction of a transition: change from start to end of epoch |
 | `peaks_*` | share that is local maxima (how oscillatory the signal is) |
 | `entropy_*` | uncertainty or randomness of the signal |
+| `autocor_peak_*` | height of the strongest autocorrelation peak: how regular the rhythm is |
+| `autocor_peak_lag_*` | lag of that peak in samples: the step period (divide by 50 for seconds) |
+| `excursion_time_*` | when the largest deviation from the mean occurs (0 = start, 1 = end of epoch) |
+| `half_mean_diff_*` | change in level from the first to the second half of the epoch |
+| `half_rms_diff_*` | change in movement from the first to the second half of the epoch |
 
 For the magnitude (`*_mag`), these describe the overall movement, regardless of how the phone is oriented.
 

@@ -154,6 +154,74 @@ entropy <- function(x, bins = 10) {
   return(-sum(p[p > 0] * log(p[p > 0])))
 }
 
+#' Compute the autocorrelations of a signal at lags 1 to max_lag
+#' (from copilot assignment)
+autocorrelations <- function(x, max_lag = 64) {
+  max_lag <- min(max_lag, length(x) - 2)
+  if (max_lag < 1 || sd(x) == 0) {
+    return(numeric(0))
+  }
+  return(drop(acf(x, lag.max = max_lag, plot = FALSE)$acf)[-1])
+}
+
+#' Find the lag of the strongest autocorrelation peak of a signal
+#' (from copilot assignment)
+autocor_peak_lag <- function(x, min_lag = 5, max_lag = 64) {
+  r <- autocorrelations(x, max_lag)
+  if (length(r) < min_lag + 1) {
+    return(0)
+  }
+  # Local maxima of the autocorrelation, ignoring very short lags
+  lags <- seq(min_lag, length(r) - 1)
+  is_peak <- r[lags] > r[lags - 1] & r[lags] >= r[lags + 1]
+  if (!any(is_peak)) {
+    return(0)
+  }
+  peak_lags <- lags[is_peak]
+  return(peak_lags[which.max(r[peak_lags])])
+}
+
+#' Compute the height of the strongest autocorrelation peak of a signal
+#' (from copilot assignment)
+autocor_peak <- function(x, min_lag = 5, max_lag = 64) {
+  lag <- autocor_peak_lag(x, min_lag, max_lag)
+  if (lag == 0) {
+    return(0)
+  }
+  return(autocorrelations(x, max_lag)[lag])
+}
+
+#' Compute when the largest deviation from the mean occurs, as a share of the epoch
+#' (from copilot assignment)
+excursion_time <- function(x) {
+  if (length(x) < 2) {
+    return(0)
+  }
+  return((which.max(abs(x - mean(x))) - 1) / (length(x) - 1))
+}
+
+#' Compute the difference between the means of the second and first half
+#' (from copilot assignment)
+half_mean_diff <- function(x) {
+  half <- floor(length(x) / 2)
+  if (half < 1) {
+    return(0)
+  }
+  return(mean(tail(x, half)) - mean(head(x, half)))
+}
+
+#' Compute the difference between the movement (RMS around the mean)
+#' of the second and first half
+#' (from copilot assignment)
+half_rms_diff <- function(x) {
+  half <- floor(length(x) / 2)
+  if (half < 2) {
+    return(0)
+  }
+  rms_around_mean <- function(y) sqrt(mean((y - mean(y))^2))
+  return(rms_around_mean(tail(x, half)) - rms_around_mean(head(x, half)))
+}
+
 #' Extract all time domain features from a signal data frame segmented into epochs
 #' @param signal_df A data frame containing the signal data with columns: userid, trial, sampleid, X1, X2, X3, activity
 #' @param n_samples_per_epoch The number of samples per epoch (default is 128, corresponding to 2.56 seconds at 50 Hz)
@@ -164,7 +232,8 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
     # partition into epochs and add an epoch ID variable
     mutate(
       epoch = sampleid %/% n_samples_per_epoch,
-      acc_mag = sqrt(X1^2 + X2^2 + X3^2)
+      mag = sqrt(X1^2 + X2^2 + X3^2),
+      dyn_mag = sqrt((X1 - mean(X1))^2 + (X2 - mean(X2))^2 + (X3 - mean(X3))^2)
     ) |>
     # extract statistical features from each epoch
     group_by(epoch) |>
@@ -179,7 +248,7 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
 
       # Features of each axis magnitude (e.g. mean_X1, mean_mag)
       across(
-        c(X1, X2, X3, acc_mag),
+        c(X1, X2, X3, mag, dyn_mag),
         list(
           mean = mean,
           median = median,
@@ -200,7 +269,12 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
           slope = slope,
           diff = diff_start_end,
           peaks = peak_rate,
-          entropy = entropy
+          entropy = entropy,
+          autocor_peak = autocor_peak,
+          autocor_peak_lag = autocor_peak_lag,
+          excursion_time = excursion_time,
+          half_mean_diff = half_mean_diff,
+          half_rms_diff = half_rms_diff
         ),
         .names = "{.fn}_{sub('acc_', '', .col)}"
       ),
