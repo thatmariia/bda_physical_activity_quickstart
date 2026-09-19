@@ -111,8 +111,7 @@ Removing columns unneccessary for fitting.
 df_train <- df_train |> select(-epoch, -sampleid, -user_id, -exp_id)
 ```
 
-Checking if there are any linear combinations within features.
-Preprocessing data before doing so.
+Checking if there are any linear combinations within features in preprocessed training data.
 
 ```{r, fold = "Relevant functions for preprocessing", code = readLines(here::here("R", "preprocess.R"))}
 source(here::here("R", "preprocess.R"))

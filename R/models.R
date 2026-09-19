@@ -2,6 +2,20 @@
 # == FUNCTIONS FOR TRAINING MODELS
 # ==========================================================
 
+#' Calculate the maximum number of weights for a multinomial model
+get_maxnwts <- function(formula, data, margin = 10) {
+  # ==> START LLM https://chatgpt.com/share/6aade94a-8e00-83ed-bd7d-3192cf67585b
+  mf <- model.frame(formula, data = data)
+  y  <- model.response(mf)
+
+  x <- model.matrix(formula, data = mf)
+
+  # nnet::multinom internally allocates weights for K output units.
+  # +1 gives a little room beyond the calculated requirement.
+  return(nlevels(y) * (ncol(x) + 1L) + margin)
+  # ==> END LLM
+}
+
 #' Construct a list of specifications for fitting a model
 #' based on provided options
 get_fit_spec <- function(
@@ -12,9 +26,6 @@ get_fit_spec <- function(
 
   # Add terms (uses term option)
   data <- make_data(df, key, pp_utils, TRUE)
-
-  maxNWts = 25000 # 1000
-  maxit = 100
 
   # Add weights (uses weighting option)
   data <- data |>
@@ -43,7 +54,26 @@ get_fit_spec <- function(
     formula <- aggr_activity ~ (. - weights)
   }
 
-  return(list(data = data, formula = formula, method = method, MaxNWts = maxNWts, maxit = maxit, key = key))
+  # Create extra arguments (uses method)
+  extra_args <- switch(method,
+    multinom = list(
+      trace = FALSE,
+      MaxNWts = get_maxnwts(my_formula, train_data),
+      tuneGrid = expand.grid(decay = c(0, 1e-4, 1e-3, 1e-2, 0.1)),
+      maxit = 100
+    ),
+    lda = list(),
+    knn = list(
+        tuneGrid = expand.grid(k = seq(1, 51, by = 2))
+    ),
+    naive_bayes = list(
+        tuneGrid = expand.grid(laplace = c(0, 1), usekernel = c(FALSE, TRUE), adjust = c(0.5, 1, 2)
+    )
+    ),
+    list()
+  )
+
+  return(list(data = data, formula = formula, method = method, extra_args = extra_args, key = key))
 }
 
 #' Preprocess and fit a list of models based on the provided data and options
@@ -74,17 +104,18 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
   for (spec in specs) {
     cat("Fitting model", i, "/", length(specs), ":", spec$key, "...\n")
     i <- i + 1
-    model <- caret::train(
-      spec$formula,
-      data = spec$data,
-      weights = weights,
-      method = spec$method,
-      trControl = trcntr,
-      MaxNWts = spec$MaxNWts,
-      maxit = spec$maxit,
-      trace = FALSE
+
+    args <- list(
+        form = spec$formula,
+        data = spec$data,
+        weights = weights,
+        method = spec$method,
+        trControl = trcntr
     )
-    models[[spec$key]] <- model
+    extra_args <- spec$extra_args
+
+    fit <- do.call(caret::train, c(args, extra_args))
+    models[[spec$key]] <- fit
   }
 
   return(list(models = models, pp_utils = pp_utils))
