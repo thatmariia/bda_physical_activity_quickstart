@@ -38,47 +38,55 @@ plot_signal_df_hist(gyro_df)
 ## Features
 
 <details>
-<summary>Per axis:</summary>
+<summary>Per axis and magnitude (`*` is `X1`, `X2`, `X3` or `mag`):</summary>
+
 | Feature | Relevance |
 |---|---|
 | `mean_*`, `median_*` | average signal, direction of gravity, median robust to outliers |
-| `sd_*`, `var_*` | spread of the signal |
+| `sd_*` | spread of the signal |
 | `min_*`, `max_*` | range of movement |
 | `rms_*` | signal energy |
 | `q05_*`, `q25_*`, `q75_*`, `q95_*` | shape of the distribution |
-| `var_rat_*` | how much of the movement is along this axis |
 | `skew_*` | asymmetry of the distribution |
 | `kurtosis_*` | tailedness of the distribution |
-| `ar1_*`, `ar2_*` | autocorrelations at lags 1 and 2 |
-| `mean_abs_diff_x`, `max_abs_diff_x` | how abrupt the changes in the signal are |
+| `ar1_lag1_*`, `ar1_lag2_*` | autocorrelations at lags 1 and 2 |
+| `mean_abs_diff_*`, `max_abs_diff_*` | how abrupt the changes in the signal are |
 | `slope_*` | steady trend of the signal |
 | `diff_*` | direction of a transition: change from start to end of epoch |
-| `rot_*` | net integral; for gyro, net rotation angle |
-| `rot_abs_*` | total amount of movement, regardless of direction |
-| `rot_asym_*` | the asymmetry of rotations in each direction |
-| `zcr_*` | zero crossing rate, how often the signal changes sign |
 | `peaks_*` | share that is local maxima (how oscillatory the signal is) |
-| `grav_*` | angle between axis and gravity |
-| `grav_range_*` | how much the angle varies within the epoch |
-| `grav_change_*` | change in tilt from start to end of epoch |
 | `entropy_*` | uncertainty or randomness of the signal |
+
+For the magnitude (`*_mag`), these describe the overall movement, regardless of how the phone is oriented.
+
 </details>
 
 <details>
-<summary>Magnitude:</summary>
+<summary>Per axis only (`*` is `X1`, `X2` or `X3`):</summary>
+
 | Feature | Relevance |
 |---|---|
-| `mean_mag`, `median_mag`, `rsm_mag` | overall acceleration level |
-| `sd_mag`, `var_mag`, `min_mag`, `max_mag`, `q*_mag` | movement intensity regardless of orientation |
-| `skew_mag`, `kurtosis_mag` | impact pattern |
-| `ar1_lag*_mag` | smoothness of overall movement |
-| `mean_abs_diff_mag`, `max_abs_diff_mag`, `slope_mag`, `diff_mag` | abruptness and trend of overall movement |
-| `entropy_mag` | uncertainty or randomness of the overall movement |
-| `peaks_mag` | how oscillating the overall movement is |
+| `rot_*` | net integral; for gyro, net rotation angle |
+| `rot_abs_*` | total amount of movement, regardless of direction |
+| `rot_asym_*` | the asymmetry of rotations in each direction |
+| `zcr_*` | how often the signal crosses its mean |
+| `grav_range_*` | how much the angle with gravity varies within the epoch |
+
+</details>
+
+<details>
+<summary>Axis compared with the other two (`*` is `X1`, `X2` or `X3`):</summary>
+
+| Feature | Relevance |
+|---|---|
+| `var_rat_*` | how much of the movement is along this axis |
+| `grav_*` | angle between axis and gravity |
+| `grav_change_*` | change in tilt from start to end of epoch |
+
 </details>
 
 <details>
 <summary>Relationships:</summary>
+
 | Feature | Relevance |
 |---|---|
 | `cc_lag*_*` | lagged correlations between signals |
@@ -87,7 +95,8 @@ plot_signal_df_hist(gyro_df)
 | `dom` | share of the strongest axis in the overall movement |
 | `diff_orient` | orientation change between start and end of signal |
 | `angle_*` | angle of the mean signal in each plane |
-<details>
+
+</details>
 
 ## Feature extraction
 
