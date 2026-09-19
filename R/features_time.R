@@ -232,10 +232,14 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
     # partition into epochs and add an epoch ID variable
     mutate(
       epoch = sampleid %/% n_samples_per_epoch,
-      mag = sqrt(X1^2 + X2^2 + X3^2),
-      dyn_mag = sqrt((X1 - mean(X1))^2 + (X2 - mean(X2))^2 + (X3 - mean(X3))^2)
+      mag = sqrt(X1^2 + X2^2 + X3^2)
     ) |>
-    # extract statistical features from each epoch
+    # remove gravity per epoch
+    mutate(
+      dyn_mag = sqrt((X1 - mean(X1))^2 + (X2 - mean(X2))^2 + (X3 - mean(X3))^2),
+      .by = epoch
+    ) |>
+    # extract features from each epoch
     group_by(epoch) |>
     summarise(
       # Activity label for the epoch = most common value (mode)
@@ -276,7 +280,7 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
           half_mean_diff = half_mean_diff,
           half_rms_diff = half_rms_diff
         ),
-        .names = "{.fn}_{sub('acc_', '', .col)}"
+        .names = "{.fn}_{.col}"
       ),
 
       # Features of each axis only
@@ -287,7 +291,7 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
           rot_abs = \(x) abs_rotation(x, sample_rate),
           rot_asym = \(x) rotation_asym(x, sample_rate),
           zcr = zero_cross_rate,
-          grav_range = \(x) gravity_angle_range(x, acc_mag)
+          grav_range = \(x) gravity_angle_range(x, mag)
         ),
         .names = "{.fn}_{.col}"
       ),
