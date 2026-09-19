@@ -112,13 +112,24 @@ df_train <- df_train |> select(-epoch, -sampleid, -user_id, -exp_id)
 ```
 
 Checking if there are any linear combinations within features.
+Preprocessing data before doing so.
+
+```{r, fold = "Relevant functions for preprocessing", code = readLines(here::here("R", "preprocess.R"))}
+source(here::here("R", "preprocess.R"))
+```
 
 ```{r}
-df_numeric <- df_train |> select_if(is.numeric)
+pp <- fit_preprocess(df_train)
+df_train_pp  <- apply_preprocess(df_train, pp)
+```
+
+```{r}
+df_numeric <- df_train_pp |> select_if(is.numeric)
 linear_combos <- caret::findLinearCombos(df_numeric)
 redundant <- names(df_numeric)[linear_combos$remove]
 cat("Number of linear combinations found:", length(redundant), "\n")
 cat("Redundant columns:", paste(redundant, collapse = ", "))
+
 # Remove redundant columns from both training and testing data
 df_train <- df_train |> select(-all_of(redundant))
 df_test <- df_test |> select(-all_of(redundant))
