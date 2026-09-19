@@ -120,43 +120,23 @@ get_frequency_domain_features <- function(spectrum_df) {
   userfreqdom <- spectrum_df %>%
     group_by(epoch) %>%
     summarise(
-      # Signal 1
-      dom_power_ratio1 = dominant_power_ratio(freq, spec1),
-      dom_freq1 = dominant_frequency(freq, spec1),
-      mean_freq1 = mean_frequency(freq, spec1),
-      sd_freq1 = sd_frequency(freq, spec1),
-      skew_freq1 = skew_frequency(freq, spec1),
-      kurt_freq1 = kurtosis_frequency(freq, spec1),
-      entropy1 = spectral_entropy(spec1),
-      edge_freq1 = spectral_edge_frequency(freq, spec1),
-      i1_band1 = band_power_ratio(freq, spec1, 0, 0.5),
-      i2_band1 = band_power_ratio(freq, spec1, 0.5, 3),
-      i3_band1 = band_power_ratio(freq, spec1, 3, 10),
-
-      # Signal 2
-      dom_power_ratio2 = dominant_power_ratio(freq, spec2),
-      dom_freq2 = dominant_frequency(freq, spec2),
-      mean_freq2 = mean_frequency(freq, spec2),
-      sd_freq2 = sd_frequency(freq, spec2),
-      skew_freq2 = skew_frequency(freq, spec2),
-      kurt_freq2 = kurtosis_frequency(freq, spec2),
-      entropy2 = spectral_entropy(spec2),
-      edge_freq2 = spectral_edge_frequency(freq, spec2),
-      i1_band2 = band_power_ratio(freq, spec2, 0, 0.5),
-      i2_band2 = band_power_ratio(freq, spec2, 0.5, 3),
-      i3_band2 = band_power_ratio(freq, spec2, 3, 10),
-
-      # Signal 3
-      dom_power_ratio3 = dominant_power_ratio(freq, spec3),
-      dom_freq3 = dominant_frequency(freq, spec3),
-      mean_freq3 = mean_frequency(freq, spec3),
-      sd_freq3 = sd_frequency(freq, spec3),
-      skew_freq3 = skew_frequency(freq, spec3),
-      kurt_freq3 = kurtosis_frequency(freq, spec3),
-      entropy3 = spectral_entropy(spec3),
-      edge_freq3 = spectral_edge_frequency(freq, spec3),
-      i1_band3 = band_power_ratio(freq, spec3, 0, 0.5),
-      i2_band3 = band_power_ratio(freq, spec3, 0.5, 3),
-      i3_band3 = band_power_ratio(freq, spec3, 3, 10)
+      # Features of each signal (e.g. mean_freq1 for spec1)
+      across(
+        c(spec1, spec2, spec3),
+        list(
+          dom_power_ratio = \(s) dominant_power_ratio(freq, s),
+          dom_freq = \(s) dominant_frequency(freq, s),
+          mean_freq = \(s) mean_frequency(freq, s),
+          sd_freq = \(s) sd_frequency(freq, s),
+          skew_freq = \(s) skew_frequency(freq, s),
+          kurt_freq = \(s) kurtosis_frequency(freq, s),
+          entropy = spectral_entropy,
+          edge_freq = \(s) spectral_edge_frequency(freq, s),
+          i1_band = \(s) band_power_ratio(freq, s, 0, 0.5),
+          i2_band = \(s) band_power_ratio(freq, s, 0.5, 3),
+          i3_band = \(s) band_power_ratio(freq, s, 3, 10)
+        ),
+        .names = "{.fn}{sub('spec', '', .col)}"
+      )
     )
 }
