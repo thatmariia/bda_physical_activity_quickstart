@@ -222,6 +222,25 @@ half_rms_diff <- function(x) {
   return(rms_around_mean(tail(x, half)) - rms_around_mean(head(x, half)))
 }
 
+#' Compute one autoregression coefficient of a signal (Burg method)
+#' (from Reyes-Ortiz et al., 2015)
+ar_coefficient <- function(x, k, order = 4) {
+  if (length(x) <= 2 * order || sd(x) == 0) {
+    return(0)
+  }
+  fit <- ar.burg(x, aic = FALSE, order.max = order, demean = TRUE)
+  return(fit$ar[k])
+}
+
+#' Compute the standard deviation of the jerk (rate of change) of a signal
+#' (from Reyes-Ortiz et al., 2015)
+jerk_sd <- function(x, sample_rate = 50) {
+  if (length(x) < 3) {
+    return(0)
+  }
+  return(sd(diff(x)) * sample_rate)
+}
+
 #' Extract all time domain features from a signal data frame segmented into epochs
 #' @param signal_df A data frame containing the signal data with columns: userid, trial, sampleid, X1, X2, X3, activity
 #' @param n_samples_per_epoch The number of samples per epoch (default is 128, corresponding to 2.56 seconds at 50 Hz)
@@ -278,7 +297,13 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
           autocor_peak_lag = autocor_peak_lag,
           excursion_time = excursion_time,
           half_mean_diff = half_mean_diff,
-          half_rms_diff = half_rms_diff
+          half_rms_diff = half_rms_diff,
+          mad = mad,
+          jerk_sd = \(x) jerk_sd(x, sample_rate),
+          ar1 = \(x) ar_coefficient(x, 1),
+          ar2 = \(x) ar_coefficient(x, 2),
+          ar3 = \(x) ar_coefficient(x, 3),
+          ar4 = \(x) ar_coefficient(x, 4)
         ),
         .names = "{.fn}_{.col}"
       ),

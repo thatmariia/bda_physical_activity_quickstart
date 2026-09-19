@@ -102,14 +102,15 @@ dominant_power_ratio <- function(freq, spec, sample_rate = 50, min_hz = 0.5) {
   return(spec[which.min(abs(freq * sample_rate - dom_freq))] / sum(spec))
 }
 
-#' Compute the ratio of power in a specific frequency band to the total power
-band_power_ratio <- function(freq, spec, lb, ub, sample_rate = 50) {
-  freq_hz <- freq * sample_rate
-  keep <- freq_hz >= lb & freq_hz <= ub
-  if (!any(keep) || sum(spec[keep]) == 0) {
+#' Compute the share of the spectral power in one of `n_bins` equal frequency bins
+#' (from Reyes-Ortiz et al., 2015)
+band_bin_share <- function(spec, bin, n_bins = 8) {
+  total <- sum(spec)
+  if (total == 0) {
     return(0)
   }
-  return(sum(spec[keep]) / sum(spec))
+  bin_id <- ceiling(seq_along(spec) / length(spec) * n_bins)
+  return(sum(spec[bin_id == bin]) / total)
 }
 
 #' Extract frequency domain features from a spectrum data frame,
@@ -132,9 +133,14 @@ get_frequency_domain_features <- function(spectrum_df) {
           kurt_freq = \(s) kurtosis_frequency(freq, s),
           entropy = spectral_entropy,
           edge_freq = \(s) spectral_edge_frequency(freq, s),
-          i1_band = \(s) band_power_ratio(freq, s, 0, 0.5),
-          i2_band = \(s) band_power_ratio(freq, s, 0.5, 3),
-          i3_band = \(s) band_power_ratio(freq, s, 3, 10)
+          bin1_ = \(s) band_bin_share(s, 1),
+          bin2_ = \(s) band_bin_share(s, 2),
+          bin3_ = \(s) band_bin_share(s, 3),
+          bin4_ = \(s) band_bin_share(s, 4),
+          bin5_ = \(s) band_bin_share(s, 5),
+          bin6_ = \(s) band_bin_share(s, 6),
+          bin7_ = \(s) band_bin_share(s, 7),
+          bin8_ = \(s) band_bin_share(s, 8)
         ),
         .names = "{.fn}{sub('spec', '', .col)}"
       )

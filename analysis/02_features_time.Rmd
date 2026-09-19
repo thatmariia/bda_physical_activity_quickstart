@@ -60,6 +60,9 @@ plot_signal_df_hist(gyro_df)
 | `excursion_time_*` | when the largest deviation from the mean occurs (0 = start, 1 = end of epoch) |
 | `half_mean_diff_*` | change in level from the first to the second half of the epoch |
 | `half_rms_diff_*` | change in movement from the first to the second half of the epoch |
+| `mad_*` | median absolute deviation: spread of the signal, robust to outliers |
+| `jerk_sd_*` | spread of the jerk (rate of change): how abrupt the movement is |
+| `ar1_*`, `ar2_*`, `ar3_*`, `ar4_*` | autoregression coefficients (Burg, order 4): temporal structure of the signal |
 
 For the magnitude (`*_mag`), these describe the overall movement, regardless of how the phone is oriented.
 

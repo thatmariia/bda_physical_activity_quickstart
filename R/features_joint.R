@@ -21,6 +21,19 @@ safe_cor <- function(x, y) {
   return(cor(x, y))
 }
 
+#' Compute the angle between the mean vectors of two three-axial signals
+#' (from Reyes-Ortiz et al., 2015)
+mean_vector_angle <- function(ax, ay, az, bx, by, bz) {
+  a <- c(mean(ax), mean(ay), mean(az))
+  b <- c(mean(bx), mean(by), mean(bz))
+  norm_a <- sqrt(sum(a^2))
+  norm_b <- sqrt(sum(b^2))
+  if (norm_a == 0 || norm_b == 0) {
+    return(0)
+  }
+  return(acos(pmin(1, pmax(-1, sum(a * b) / (norm_a * norm_b)))) * 180 / pi)
+}
+
 #' Extract joint features from joined acc and gyro signals segmented into epochs
 #' @param joint_df A data frame from `join_sensors()`
 #' @param n_samples_per_epoch The number of samples per epoch (default is 128, corresponding to 2.56 seconds at 50 Hz)
@@ -47,6 +60,9 @@ get_joint_features <- function(joint_df, n_samples_per_epoch = 128) {
       cor_acc_gyro_X1 = safe_cor(acc_X1, gyro_X1),
       cor_acc_gyro_X2 = safe_cor(acc_X2, gyro_X2),
       cor_acc_gyro_X3 = safe_cor(acc_X3, gyro_X3),
+      gyro_gravity_angle = mean_vector_angle(
+        gyro_X1, gyro_X2, gyro_X3, acc_X1, acc_X2, acc_X3
+      ),
       .groups = "drop"
     )
   return(joint_features)

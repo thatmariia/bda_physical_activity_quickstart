@@ -21,6 +21,7 @@ describe how the two of them relate.
 | `mean_dot`, `sd_dot` | directional coupling between acceleration and rotation |
 | `gyro_acc_rms_ratio` | rotation- vs translation-dominated movement |
 | `cor_acc_gyro_X*` | coupling of each accelerometer axis with the same gyroscope axis |
+| `gyro_gravity_angle` | angle between the rotation axis and gravity: direction of postural transitions |
 
 </details>
 

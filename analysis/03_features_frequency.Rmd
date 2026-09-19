@@ -72,7 +72,7 @@ Now we have a tidy data frame with the spectrum of each signal in each epoch.
 | `skew_freq*`, `kurt_freq*` | asymmetry and tailedness of the frequency distribution |
 | `entropy*` | uncertainty or randomness of the frequency distribution |
 | `edge_freq*` | frequency below which 90% of the power lies |
-| `i1_band*`, `i2_band*`, `i3_band*` | ratio of power at different frequency bands |
+| `bin1_*` ... `bin8_*` | share of power in each frequency bin: finer shape of the spectrum |
 
 
 </details>
