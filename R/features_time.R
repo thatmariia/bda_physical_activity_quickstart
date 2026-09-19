@@ -134,6 +134,16 @@ var_ratio <- function(x, y, z) {
   var(x) / (var(x) + var(y) + var(z))
 }
 
+#' Compute the entropy of the distribution of signal values
+entropy <- function(x, bins = 10) {
+  if (length(unique(x)) < 2) {
+    return(0)
+  }
+  p <- hist(x, breaks = bins, plot = FALSE)$counts
+  p <- p / sum(p)
+  return(-sum(p[p > 0] * log(p[p > 0])))
+}
+
 #' Extract all time domain features from a signal data frame segmented into epochs
 #' @param signal_df A data frame containing the signal data with columns: userid, trial, sampleid, X1, X2, X3, activity
 #' @param n_samples_per_epoch The number of samples per epoch (default is 128, corresponding to 2.56 seconds at 50 Hz)
@@ -184,6 +194,7 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       grav_range_X1 = gravity_angle_range(X1, acc_mag),
       grav_X1 = gravity_angle(X1, X2, X3),
       grav_change_X1 = gravity_angle_change(X1, X2, X3),
+      entropy_X1 = entropy(X1),
 
       # X2
       mean_X2 = mean(X2),
@@ -212,6 +223,7 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       grav_range_X2 = gravity_angle_range(X2, acc_mag),
       grav_X2 = gravity_angle(X2, X3, X1),
       grav_change_X2 = gravity_angle_change(X2, X3, X1, k = 0.1),
+      entropy_X2 = entropy(X2),
 
       # X3
       mean_X3 = mean(X3),
@@ -239,7 +251,8 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       zcr_X3 = zero_cross_rate(X3),
       grav_range_X3 = gravity_angle_range(X3, acc_mag),
       grav_X3 = gravity_angle(X3, X1, X2),
-      grav_change3 = gravity_angle_change(X3, X1, X2),
+      grav_change_X3 = gravity_angle_change(X3, X1, X2),
+      entropy_X3 = entropy(X3),
 
       # Magnitude
       mean_mag = mean(acc_mag),
@@ -260,11 +273,12 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       max_abs_diff_mag = max_abs_diff(acc_mag),
       slope_mag = slope(acc_mag),
       diff_mag = diff_start_end(acc_mag),
+      entropy_mag = entropy(acc_mag),
 
       # Relationships
-      ar_lag1_X1X2 = lagged_cor(X1, X2, lag = 1),
-      ar_lag1_X1X3 = lagged_cor(X1, X3, lag = 1),
-      ar_lag1_X2X3 = lagged_cor(X2, X3, lag = 1),
+      cc_lag1_X1X2 = lagged_cor(X1, X2, lag = 1),
+      cc_lag1_X1X3 = lagged_cor(X1, X3, lag = 1),
+      cc_lag1_X2X3 = lagged_cor(X2, X3, lag = 1),
       sma = sma(X1, X2, X3),
       mean_jerk = mean(jerk(X1, X2, X3)),
       sd_jerk = sd(jerk(X1, X2, X3)),
