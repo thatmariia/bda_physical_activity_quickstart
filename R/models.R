@@ -7,12 +7,12 @@ get_maxnwts <- function(formula, data, margin = 10) {
   # ==> START LLM https://chatgpt.com/share/6aade94a-8e00-83ed-bd7d-3192cf67585b
   mf <- model.frame(formula, data = data)
   y  <- model.response(mf)
-
   x <- model.matrix(formula, data = mf)
+  k = length(unique(y))
 
   # nnet::multinom internally allocates weights for K output units.
   # +1 gives a little room beyond the calculated requirement.
-  return(nlevels(y) * (ncol(x) + 1L) + margin)
+  return(k * (ncol(x) + 1L) + margin)
   # ==> END LLM
 }
 
@@ -58,9 +58,9 @@ get_fit_spec <- function(
   extra_args <- switch(method,
     multinom = list(
       trace = FALSE,
-      MaxNWts = get_maxnwts(my_formula, train_data),
-      tuneGrid = expand.grid(decay = c(0, 1e-4, 1e-3, 1e-2, 0.1)),
-      maxit = 100
+      MaxNWts = get_maxnwts(formula, data),
+    #   tuneGrid = expand.grid(decay = c(0, 1e-4, 1e-3, 1e-2, 0.1)),
+      maxit = 400
     ),
     lda = list(),
     knn = list(
@@ -73,7 +73,7 @@ get_fit_spec <- function(
     list()
   )
 
-  return(list(data = data, formula = formula, method = method, extra_args = extra_args, key = key))
+  return(list(data = data, formula = formula, weights = data$weights, method = method, extra_args = extra_args, key = key))
 }
 
 #' Preprocess and fit a list of models based on the provided data and options
@@ -105,16 +105,15 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
     cat("Fitting model", i, "/", length(specs), ":", spec$key, "...\n")
     i <- i + 1
 
-    args <- list(
-        form = spec$formula,
-        data = spec$data,
-        weights = weights,
-        method = spec$method,
-        trControl = trcntr
-    )
-    extra_args <- spec$extra_args
+    #' Train a model with caret, passing extra arguments through
+    train_model <- function(formula, data, weights, method, trControl, ...) {
+    caret::train(formula, data = data, weights = weights, method = method, trControl = trControl, ...)
+    }
 
-    fit <- do.call(caret::train, c(args, extra_args))
+    fit <- do.call(train_model, c(
+        list(spec$formula, spec$data, spec$weights, spec$method, trcntr),
+        spec$extra_args
+    ))
     models[[spec$key]] <- fit
   }
 
@@ -134,8 +133,9 @@ fit_all <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
   pp_utils <- fitted_models$pp_utils
 
   results <- data.frame(
-    accuracy = sapply(models, function(x) max(x$results$Accuracy)),
-    kappa = sapply(models, function(x) max(x$results$Kappa))
+    accuracy = sapply(models, \(x) merge(x$results, x$bestTune)$Accuracy),
+    kappa = sapply(models, \(x) merge(x$results, x$bestTune)$Kappa),
+    converged = sapply(models, \(x) x$finalModel$convergence %||% NA_integer_)
   )
 
   return(list(models = models, results = results, pp_utils = pp_utils))

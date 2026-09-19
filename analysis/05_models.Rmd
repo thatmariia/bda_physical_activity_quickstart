@@ -17,7 +17,7 @@ Define options for model training, which are used to construct different model c
 # Define the options for model training
 # only use a subset now to save time
 opts <- expand_grid(
-  method = c("multinom"),
+  method = c("multinom", "lda", "knn", "naive_bayes"),
   term_mode = c("nomode"),
   term = c("noterm", "km_cluster", "km_dist"),
   weighting = c("unweighted")
@@ -37,10 +37,10 @@ opts
 
 ## Training models
 
-```{r, fold = "Relevant functions for preprocessing and constructing data", code = readLines(here::here("R", "data_construct.R"))}
-source(here::here("R", "models.R"))
+```{r, fold = "Relevant functions for preprocessing and constructing data", code = readLines(here::here("R", ".R"))}
+source(here::here("R", "data_construct.R"))
 ```
-
+data_construct
 ```{r, fold = "Relevant functions for fitting models", code = readLines(here::here("R", "models.R"))}
 source(here::here("R", "models.R"))
 ```
@@ -49,7 +49,8 @@ source(here::here("R", "models.R"))
 # Set up parallel processing to speed up model fitting
 # ==> START LLM https://chatgpt.com/share/6aab8916-1138-83eb-b17f-1e899eec877c
 library(doParallel)
-n_cores <- parallel::detectCores() # when running locally might want to set to n-1
+n_cores <- parallel::detectCores()
+if (!on_kaggle) { n_cores <- n_cores - 1 }
 cl <- makePSOCKcluster(n_cores)
 registerDoParallel(cl)
 # ==> END LLM
