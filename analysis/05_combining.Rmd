@@ -13,78 +13,42 @@ source(here::here("R", "combining.R"))
 ```
 
 ```{r}
-all_filenames_train <- list(
-  "acc" = list.files(train_dir, pattern = "^acc"),
-  "gyro" = list.files(train_dir, pattern = "^gyro")
-)
-all_filenames_test <- list(
-  "acc" = list.files(test_dir, pattern = "^acc"),
-  "gyro" = list.files(test_dir, pattern = "^gyro")
-)
-cat("Number of training files:", length(all_filenames_train[["acc"]]), "acc,", length(all_filenames_train[["gyro"]]), "gyro", "\n")
-cat("Number of test files:", length(all_filenames_test[["acc"]]), "acc,", length(all_filenames_test[["gyro"]]), "gyro")
+all_filenames_train_acc <- list.files(train_dir, pattern = "^acc")
+all_filenames_test_acc <- list.files(test_dir, pattern = "^acc")
+
+cat("Number of training files:", length(all_filenames_train_acc) * 2, "\n")
+cat("Number of test files:", length(all_filenames_test_acc) * 2)
 ```
 
 ```{r}
 n_samples_per_epoch <- 128
 sample_rate <- 50
 
-df_train_acc <- map_dfr(
-  all_filenames_train[["acc"]],
+df_train <- map_dfr(
+  all_filenames_train_acc,
   parse_and_features,
   dir = train_dir,
   sample_labels = sample_labels,
   n_samples_per_epoch = n_samples_per_epoch,
   sample_rate = sample_rate,
-  .progress = "Parsing all acc training files, gathering features"
+  .progress = "Parsing all training files, gathering features"
 )
 
-df_train_gyro <- map_dfr(
-  all_filenames_train[["gyro"]],
-  parse_and_features,
-  dir = train_dir,
-  sample_labels = sample_labels,
-  n_samples_per_epoch = n_samples_per_epoch,
-  sample_rate = sample_rate,
-  .progress = "Parsing all gyro training files, gathering features"
-)
-
-df_train <- inner_join(
-    df_train_acc, df_train_gyro,
-    by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples", "aggr_activity", "activity_confidence"),
-    suffix = c("_acc", "_gyro")
-)
 head(df_train)
 ```
 
 For predicting on the test set later, we also construct a dataframe for test features.
 
 ```{r}
-df_test_acc <- map_dfr(
-  all_filenames_test[["acc"]],
+df_test <- map_dfr(
+  all_filenames_test_acc,
   parse_and_features,
   dir = test_dir,
   sample_labels = sample_labels,
   n_samples_per_epoch = n_samples_per_epoch,
   sample_rate = sample_rate,
-  .progress = "Parsing all acc test files, gathering features"
+  .progress = "Parsing all test files, gathering features"
 ) |> select(-aggr_activity, -activity_confidence)
-
-df_test_gyro <- map_dfr(
-  all_filenames_test[["gyro"]],
-  parse_and_features,
-  dir = test_dir,
-  sample_labels = sample_labels,
-  n_samples_per_epoch = n_samples_per_epoch,
-  sample_rate = sample_rate,
-  .progress = "Parsing all gyro test files, gathering features"
-) |> select(-aggr_activity, -activity_confidence)
-
-df_test <- inner_join(
-    df_test_acc, df_test_gyro,
-    by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples"),
-    suffix = c("_acc", "_gyro")
-)
 ```
 
 ## Formatting testing data
