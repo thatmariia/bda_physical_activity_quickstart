@@ -98,6 +98,16 @@ zero_cross_rate <- function(x) {
   return(mean(side[-1] != side[-length(side)]))
 }
 
+#' Compute the rate of local maxima in a signal
+peak_rate <- function(x) {
+  if (length(x) < 3) {
+    return(0)
+  }
+  dx <- diff(x)
+  n_peaks <- sum(dx[-length(dx)] > 0 & dx[-1] < 0)
+  return(n_peaks / (length(x) - 2))
+}
+
 #' Compute the angle of the gravity vector
 gravity_angle <- function(x, y, z) {
   mag <- sqrt(mean(x)^2 + mean(y)^2 + mean(z)^2)
@@ -191,6 +201,7 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       rot_abs_X1 = abs_rotation(X1, sample_rate),
       rot_asym_X1 = rotation_asym(X1, sample_rate),
       zcr_X1 = zero_cross_rate(X1),
+      peaks_X1 = peak_rate(X1),
       grav_range_X1 = gravity_angle_range(X1, acc_mag),
       grav_X1 = gravity_angle(X1, X2, X3),
       grav_change_X1 = gravity_angle_change(X1, X2, X3),
@@ -220,6 +231,7 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       rot_abs_X2 = abs_rotation(X2, sample_rate),
       rot_asym_X2 = rotation_asym(X2, sample_rate),
       zcr_X2 = zero_cross_rate(X2),
+      peaks_X2 = peak_rate(X2),
       grav_range_X2 = gravity_angle_range(X2, acc_mag),
       grav_X2 = gravity_angle(X2, X3, X1),
       grav_change_X2 = gravity_angle_change(X2, X3, X1, k = 0.1),
@@ -249,6 +261,7 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       rot_abs_X3 = abs_rotation(X3, sample_rate),
       rot_asym_X3 = rotation_asym(X3, sample_rate),
       zcr_X3 = zero_cross_rate(X3),
+      peaks_X3 = peak_rate(X3),
       grav_range_X3 = gravity_angle_range(X3, acc_mag),
       grav_X3 = gravity_angle(X3, X1, X2),
       grav_change_X3 = gravity_angle_change(X3, X1, X2),
@@ -274,7 +287,8 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       slope_mag = slope(acc_mag),
       diff_mag = diff_start_end(acc_mag),
       entropy_mag = entropy(acc_mag),
-
+      peaks_mag = peak_rate(acc_mag),
+      
       # Relationships
       cc_lag1_X1X2 = lagged_cor(X1, X2, lag = 1),
       cc_lag1_X1X3 = lagged_cor(X1, X3, lag = 1),

@@ -57,6 +57,7 @@ plot_signal_df_hist(gyro_df)
 | `rot_abs_*` | total amount of movement, regardless of direction |
 | `rot_asym_*` | the asymmetry of rotations in each direction |
 | `zcr_*` | zero crossing rate, how often the signal changes sign |
+| `peaks_*` | share that is local maxima (how oscillatory the signal is) |
 | `grav_*` | angle between axis and gravity |
 | `grav_range_*` | how much the angle varies within the epoch |
 | `grav_change_*` | change in tilt from start to end of epoch |
@@ -73,6 +74,7 @@ plot_signal_df_hist(gyro_df)
 | `ar1_lag*_mag` | smoothness of overall movement |
 | `mean_abs_diff_mag`, `max_abs_diff_mag`, `slope_mag`, `diff_mag` | abruptness and trend of overall movement |
 | `entropy_mag` | uncertainty or randomness of the overall movement |
+| `peaks_mag` | how oscillating the overall movement is |
 </details>
 
 <details>
