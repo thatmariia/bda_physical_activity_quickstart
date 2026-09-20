@@ -31,7 +31,6 @@ df_train <- map_dfr(
   sample_labels = sample_labels,
   n_samples_per_epoch = n_samples_per_epoch,
   sample_rate = sample_rate,
-  overlap = 0.5,
   .progress = "Parsing all training files, gathering features"
 )
 
