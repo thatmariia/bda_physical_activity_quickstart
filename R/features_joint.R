@@ -21,6 +21,20 @@ safe_cor <- function(x, y) {
   return(cor(x, y))
 }
 
+#' Compute the correlation between two signals when one is shifted in time,
+#' over the part of the epoch where they still overlap
+#' (a positive lag shifts the second signal forward, a negative lag the first one)
+shifted_cor <- function(x, y, lag) {
+  if (lag < 0) {
+    return(shifted_cor(y, x, -lag))
+  }
+  n <- length(x)
+  if (n - lag < 2) {
+    return(0)
+  }
+  return(safe_cor(x[seq_len(n - lag)], y[seq.int(lag + 1, n)]))
+}
+
 #' Compute the angle between the mean vectors of two three-axial signals
 #' (from Reyes-Ortiz et al., 2015)
 mean_vector_angle <- function(ax, ay, az, bx, by, bz) {
@@ -33,6 +47,24 @@ mean_vector_angle <- function(ax, ay, az, bx, by, bz) {
   }
   return(acos(pmin(1, pmax(-1, sum(a * b) / (norm_a * norm_b)))) * 180 / pi)
 }
+
+#' Compute the shifted correlation of every pair in `pairs`, as a one-row data frame
+cross_lag_cors <- function(signals, pairs = cross_lag_pairs) {
+  values <- pmap_dbl(
+    pairs,
+    \(acc, gyro, lag, name) shifted_cor(signals[[acc]], signals[[gyro]], lag)
+  )
+  names(values) <- pairs$name
+  return(as_tibble_row(values))
+}
+
+#' Every pair of an acc and a gyro channel, at time shifts of -2 to 2 samples
+cross_lag_pairs <- expand_grid(
+  acc = c("acc_X1", "acc_X2", "acc_X3", "acc_dyn_mag"),
+  gyro = c("gyro_X1", "gyro_X2", "gyro_X3", "gyro_mag"),
+  lag = -2:2
+) |>
+  mutate(name = paste0(acc, "_", gyro, "_lag", ifelse(lag < 0, paste0("m", -lag), lag)))
 
 #' Extract joint features from joined acc and gyro signals segmented into epochs
 #' @param joint_df A data frame from `join_sensors()`
@@ -53,18 +85,16 @@ get_joint_features <- function(joint_df, n_samples_per_epoch = 128) {
       dot = acc_X1 * gyro_X1 + acc_X2 * gyro_X2 + acc_X3 * gyro_X3
     ) |>
     summarise(
-      cor_acc_gyro_mag = safe_cor(acc_dyn_mag, gyro_mag),
       mean_dot = mean(dot),
       sd_dot = sd(dot),
       gyro_acc_rms_ratio = rms(gyro_mag) / (rms(acc_dyn_mag) + 1e-6),
-      cor_acc_gyro_X1 = safe_cor(acc_X1, gyro_X1),
-      cor_acc_gyro_X2 = safe_cor(acc_X2, gyro_X2),
-      cor_acc_gyro_X3 = safe_cor(acc_X3, gyro_X3),
       gyro_gravity_angle = mean_vector_angle(
         gyro_X1, gyro_X2, gyro_X3, acc_X1, acc_X2, acc_X3
       ),
+      cc = cross_lag_cors(pick(everything())),
       .groups = "drop"
-    )
+    ) |>
+    unpack(cc, names_sep = "_")
   return(joint_features)
 }
 
