@@ -17,20 +17,25 @@ Define options for model training, which are used to construct different model c
 # Define the options for model training
 # only use a subset now to save time
 opts <- expand_grid(
-  method = c("lda"),
-  term_mode = c("nomode"),
+  method = c("qda", "lda", "naive_bayes"),
+  term_mode = c("nomode", "add", "inter"),
   term = c("noterm", "km_cluster", "km_dist"),
-  weighting = c("unweighted")
+  weighting = c("unweighted"),
+  pca = c(1, 0.95, 0.7)
   # method = c("multinom", "lda", "naive_bayes"),
   # term_mode = c("nomode", "inter", "add"),
   # term = c("noterm", "km_cluster", "km_dist"),
   # weighting = c("unweighted", "weighted")
 ) |>
+  # if there's a term but no mode, nothing would happen to it
   filter(!(term_mode == "nomode" & term != "noterm")) |>
+  # if there's no term, there's nothing to do with it
   filter(!(term == "noterm" & term_mode != "nomode")) |>
+  # only multinom supports weighting
   filter(!(weighting == "weighted" & method != "multinom")) |>
-  # filter(!(method == "knn" & term != "noterm")) |>
-  filter(term_mode != "inter") # For now, taking too long
+  # qda doesn't work with more features than this
+  filter(!(method == "qda" & pca > 0.7)) |>
+  filter(!(method == "qda" & term_mode != "nomode"))
 
 opts
 ```
@@ -40,7 +45,7 @@ opts
 ```{r, fold = "Relevant functions for preprocessing and constructing data", code = readLines(here::here("R", ".R"))}
 source(here::here("R", "data_construct.R"))
 ```
-data_construct
+
 ```{r, fold = "Relevant functions for fitting models", code = readLines(here::here("R", "models.R"))}
 source(here::here("R", "models.R"))
 ```
@@ -71,7 +76,7 @@ best_idx <- which.max(fitted_models$results$accuracy)
 best_fit <- list(
   model = fitted_models$models[[best_idx]],
   key = names(fitted_models$models)[[best_idx]],
-  pp_utils = fitted_models$pp_utils
+  pp_utils = fitted_models$pp_utils[[best_idx]]
 )
 
 cat("Best model:", best_fit$key, "\n")

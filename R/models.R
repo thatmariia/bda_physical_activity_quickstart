@@ -20,9 +20,9 @@ get_maxnwts <- function(formula, data, margin = 10) {
 #' based on provided options
 get_fit_spec <- function(
   df, pp_utils,
-  method, term_mode, term, weighting
+  method, term_mode, term, weighting, pca
 ) {
-  key <- paste(method, term_mode, term, weighting, sep = "_")
+  key <- paste(method, term_mode, term, weighting, ifelse(pca < 1, paste0("pca", pca), "nopca"), sep = "_")
 
   # Add terms (uses term option)
   data <- make_data(df, key, pp_utils, TRUE)
@@ -59,8 +59,8 @@ get_fit_spec <- function(
     multinom = list(
       trace = FALSE,
       MaxNWts = get_maxnwts(formula, data),
-    #   tuneGrid = expand.grid(decay = c(0, 1e-4, 1e-3, 1e-2, 0.1)),
-      maxit = 400
+      tuneGrid = expand.grid(decay = c(0, 1e-4, 1e-3, 1e-2, 0.1)),
+      maxit = 500
     ),
     lda = list(),
     knn = list(
@@ -73,7 +73,7 @@ get_fit_spec <- function(
     list()
   )
 
-  return(list(data = data, formula = formula, weights = data$weights, method = method, extra_args = extra_args, key = key))
+  return(list(data = data, formula = formula, weights = data$weights, method = method, extra_args = extra_args, pp_utils = pp_utils, key = key))
 }
 
 #' Preprocess and fit a list of models based on the provided data and options
@@ -81,20 +81,20 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
   # Define train control with repeated cross-validation
   trcntr <- caret::trainControl(method = "repeatedcv", number = number, repeats = repeats, verboseIter = FALSE, allowParallel = TRUE)
 
-  # Precompute relevant data
-  pp <- fit_preprocess(df)
-  df_pp <- apply_preprocess(df, pp)
+  # Construct preprocessing utils, one set per pca option used
   k <- length(unique(df$aggr_activity))
-  km <- kmeans(df_pp, centers = k, nstart = nstart)
-
-  # Construct preprocessing utils
-  pp_utils <- list(preproc = pp, km = km)
+  pp_utils_per_pca <- map(set_names(unique(opts$pca)), \(use_pca) {
+    pp <- fit_preprocess(df, pca = use_pca)
+    df_pp <- apply_preprocess(df, pp)
+    km <- kmeans(df_pp, centers = k, nstart = nstart)
+    list(preproc = pp, km = km)
+  })
 
   # Get specifications for training models
-  specs <- pmap(opts, \(method, term_mode, term, weighting) {
+  specs <- pmap(opts, \(method, term_mode, term, weighting, pca) {
     get_fit_spec(
-      df, pp_utils,
-      method, term_mode, term, weighting
+      df, pp_utils_per_pca[[as.character(pca)]],
+      method, term_mode, term, weighting, pca
     )
   })
 
@@ -110,12 +110,27 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
     caret::train(formula, data = data, weights = weights, method = method, trControl = trControl, ...)
     }
 
-    fit <- do.call(train_model, c(
+    fit <- tryCatch(
+      do.call(train_model, c(
         list(spec$formula, spec$data, spec$weights, spec$method, trcntr),
         spec$extra_args
-    ))
-    models[[spec$key]] <- fit
+      )),
+      # ==> START LLM
+      # Report the model that failed, but keep fitting the other ones
+      error = function(e) {
+        cat("  could not fit", spec$key, ":", conditionMessage(e), "\n")
+        NULL
+      }
+      # ==> END LLM
+    )
+    if (!is.null(fit)) {
+      models[[spec$key]] <- fit
+    }
   }
+
+  # Keep the preprocessing utils that belong to each fitted model
+  pp_utils <- set_names(map(specs, \(spec) spec$pp_utils), map_chr(specs, "key"))
+  pp_utils <- pp_utils[names(models)]
 
   return(list(models = models, pp_utils = pp_utils))
 }
