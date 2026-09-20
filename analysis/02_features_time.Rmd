@@ -49,7 +49,7 @@ plot_signal_df_hist(gyro_df)
 | `q05_*`, `q25_*`, `q75_*`, `q95_*` | shape of the distribution |
 | `skew_*` | asymmetry of the distribution |
 | `kurtosis_*` | tailedness of the distribution |
-| `ar1_lag1_*`, `ar1_lag2_*` | autocorrelations at lags 1 and 2 |
+| `ar1_lag1_*`, `ar1_lag2_*` | autocorrelations at lags 1 and 2 of `X1..X3`, `mag`, `dyn_mag`: how smooth the signal is |
 | `mean_abs_diff_*`, `max_abs_diff_*` | how abrupt the changes in the signal are |
 | `slope_*` | steady trend of the signal |
 | `diff_*` | direction of a transition: change from start to end of epoch |
@@ -97,7 +97,7 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 
 | Feature | Relevance |
 |---|---|
-| `cc_lag*_*` | lagged correlations between signals |
+| `cc_lag1_X1X2`, `cc_lag1_X1X3`, `cc_lag1_X2X3` | correlation of one axis with another shifted by 1 sample: whether the axes move together |
 | `sma` | signal magnitude area |
 | `mean_jerk`, `sd_jerk`, `rms_jerk` | rate of change |
 | `dom` | share of the strongest axis in the overall movement |

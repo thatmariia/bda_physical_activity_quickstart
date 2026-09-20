@@ -9,6 +9,28 @@ lagged_cor <- function(x, y = x, lag = 0) {
   return(r_lagged)
 }
 
+#' Signals to correlate with a lagged copy of themselves (autocorrelations)
+#' or of another axis (cross-correlations)
+time_lag_pairs <- bind_rows(
+  expand_grid(from = c("X1", "X2", "X3", "mag", "dyn_mag"), lag = 1:2) |>
+    mutate(to = from, name = paste0("ar1_lag", lag, "_", from)),
+  tibble(from = c("X1", "X1", "X2"), to = c("X2", "X3", "X3"), lag = 1) |>
+    mutate(name = paste0("cc_lag", lag, "_", from, to))
+)
+
+#' Compute the lagged correlation of every pair in `pairs`, as a one-row data frame
+#' @param signals A data frame with the signals of one epoch
+#' @param pairs A data frame with the columns from, to, lag and name
+#' @param cor_fun The function computing the correlation of two signals at a lag
+lagged_cors <- function(signals, pairs = time_lag_pairs, cor_fun = lagged_cor) {
+  values <- pmap_dbl(
+    pairs,
+    \(from, to, lag, name) cor_fun(signals[[from]], signals[[to]], lag)
+  )
+  names(values) <- pairs$name
+  return(as_tibble_row(values))
+}
+
 #' Compute the root mean square of a signal
 rms <- function(x) {
   sqrt(mean(x^2))
@@ -285,8 +307,6 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
           q95 = \(x) quantile(x, 0.95),
           skew = e1071::skewness,
           kurtosis = e1071::kurtosis,
-          ar1_lag1 = \(x) lagged_cor(x, lag = 1),
-          ar1_lag2 = \(x) lagged_cor(x, lag = 2),
           mean_abs_diff = mean_abs_diff,
           max_abs_diff = max_abs_diff,
           slope = slope,
@@ -333,9 +353,7 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       grav_change_X3 = gravity_angle_change(X3, X1, X2),
 
       # Relationships
-      cc_lag1_X1X2 = lagged_cor(X1, X2, lag = 1),
-      cc_lag1_X1X3 = lagged_cor(X1, X3, lag = 1),
-      cc_lag1_X2X3 = lagged_cor(X2, X3, lag = 1),
+      cors = lagged_cors(pick(everything())),
       sma = sma(X1, X2, X3),
       mean_jerk = mean(jerk(X1, X2, X3)),
       sd_jerk = sd(jerk(X1, X2, X3)),
@@ -348,6 +366,8 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
 
       # Keep track of epoch lengths (some epochs are less than 128 samples)
       n_samples = n()
-    )
+    ) |>
+    # spread the correlations into their own columns (e.g. ar1_lag1_X1, cc_lag1_X1X2)
+    unpack(cors)
   return(time_domain_features)
 }

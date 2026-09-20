@@ -48,23 +48,13 @@ mean_vector_angle <- function(ax, ay, az, bx, by, bz) {
   return(acos(pmin(1, pmax(-1, sum(a * b) / (norm_a * norm_b)))) * 180 / pi)
 }
 
-#' Compute the shifted correlation of every pair in `pairs`, as a one-row data frame
-cross_lag_cors <- function(signals, pairs = cross_lag_pairs) {
-  values <- pmap_dbl(
-    pairs,
-    \(acc, gyro, lag, name) shifted_cor(signals[[acc]], signals[[gyro]], lag)
-  )
-  names(values) <- pairs$name
-  return(as_tibble_row(values))
-}
-
 #' Every pair of an acc and a gyro channel, at time shifts of -2 to 2 samples
 cross_lag_pairs <- expand_grid(
-  acc = c("acc_X1", "acc_X2", "acc_X3", "acc_dyn_mag"),
-  gyro = c("gyro_X1", "gyro_X2", "gyro_X3", "gyro_mag"),
+  from = c("acc_X1", "acc_X2", "acc_X3", "acc_dyn_mag"),
+  to = c("gyro_X1", "gyro_X2", "gyro_X3", "gyro_mag"),
   lag = -2:2
 ) |>
-  mutate(name = paste0(acc, "_", gyro, "_lag", ifelse(lag < 0, paste0("m", -lag), lag)))
+  mutate(name = paste0(from, "_", to, "_lag", ifelse(lag < 0, paste0("m", -lag), lag)))
 
 #' Extract joint features from joined acc and gyro signals segmented into epochs
 #' @param joint_df A data frame from `join_sensors()`
@@ -91,7 +81,7 @@ get_joint_features <- function(joint_df, n_samples_per_epoch = 128) {
       gyro_gravity_angle = mean_vector_angle(
         gyro_X1, gyro_X2, gyro_X3, acc_X1, acc_X2, acc_X3
       ),
-      cc = cross_lag_cors(pick(everything())),
+      cc = lagged_cors(pick(everything()), cross_lag_pairs, shifted_cor),
       .groups = "drop"
     ) |>
     unpack(cc, names_sep = "_")
