@@ -6,9 +6,13 @@
 #' based on provided options
 get_fit_spec <- function(
   df, pp_utils,
-  method, term_mode, term, weighting, pca
+  method, term_mode, term, weighting, pca, corr
 ) {
-  key <- paste(method, term_mode, term, weighting, ifelse(pca < 1, paste0("pca", pca), "nopca"), sep = "_")
+  key <- paste(
+    method, term_mode, term, weighting,
+    ifelse(pca < 1, paste0("pca", pca), "nopca"), corr,
+    sep = "_"
+  )
 
   # Add terms (uses term option)
   data <- make_data(df, key, pp_utils, TRUE)
@@ -60,13 +64,25 @@ get_fit_spec <- function(
 
 #' Preprocess and fit a list of models based on the provided data and options
 fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
-  # Define train control with repeated cross-validation
-  trcntr <- caret::trainControl(method = "repeatedcv", number = number, repeats = repeats, verboseIter = FALSE, allowParallel = TRUE)
+  # Define train control with repeated cross-validation, keeping all epochs of
+  # a user in the same fold, since the test data comes from users not seen in training
+  # ==> START LLM https://chatgpt.com/share/6ab0e864-2034-83eb-be85-7968bad11e46
+  folds <- unlist(
+    lapply(seq_len(repeats), function(r) {
+      f <- groupKFold(df$user_id, k = number)
+      names(f) <- paste0("Fold", seq_along(f), ".Rep", r)
+      f
+    }),
+    recursive = FALSE
+  )
+  # ==> END LLM
+  trcntr <- caret::trainControl(method = "cv", index = folds, verboseIter = FALSE, allowParallel = TRUE)
 
-  # Construct preprocessing utils, one set per pca option used
+  # Construct preprocessing utils, one set per combination of pca and corr options used
   k <- length(unique(df$aggr_activity))
-  pp_utils_per_pca <- map(set_names(unique(opts$pca)), \(use_pca) {
-    pp <- fit_preprocess(df, pca = use_pca)
+  pp_opts <- distinct(opts, pca, corr)
+  pp_utils_per_opts <- pmap(pp_opts, \(pca, corr) {
+    pp <- fit_preprocess(df, pca = pca, corr = corr == "corr")
     df_pp <- apply_preprocess(df, pp)
     # only compute km if it's in the term options
     if (any(opts$term == "km_cluster") || any(opts$term == "km_dist")) {
@@ -76,12 +92,13 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
     }
     list(preproc = pp, km = km)
   })
+  names(pp_utils_per_opts) <- paste(pp_opts$pca, pp_opts$corr)
 
   # Get specifications for training models
-  specs <- pmap(opts, \(method, term_mode, term, weighting, pca) {
+  specs <- pmap(opts, \(method, term_mode, term, weighting, pca, corr) {
     get_fit_spec(
-      df, pp_utils_per_pca[[as.character(pca)]],
-      method, term_mode, term, weighting, pca
+      df, pp_utils_per_opts[[paste(pca, corr)]],
+      method, term_mode, term, weighting, pca, corr
     )
   })
 
@@ -123,7 +140,7 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
 }
 
 #' Fit all models and return the results
-#' @param df The input data frame
+#' @param df The input data frame (with a user_id column to group the folds by)
 #' @param opts The options for training the models
 #' @param number The number of folds for cross-validation
 #' @param repeats The number of times to repeat the cross-validation

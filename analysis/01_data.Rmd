@@ -3,6 +3,12 @@ source(here::here("setup.R"))
 for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
 ```
 
+> *Small disclaimer:* we use additional packages, i.e., `future` and `doParallel`.
+> Their only purpose is to use parallel processing to speed up computations.
+> The actual functions and their results are same as if they were sequential.
+> We also use the package `progressr` to show progress bars when extracting features,
+> which helps to monitor the progress.
+
 # Reading the data
 
 * The format of signal files is `<sensor>_exp<XX>_user<YY>.txt`, where `<sensor>` is either `acc` (accelerometer) or `gyro` (gyroscope), `<XX>` is experiment ID, and `<YY>` is user ID.
