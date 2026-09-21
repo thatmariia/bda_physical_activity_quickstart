@@ -109,7 +109,7 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 | Feature | Relevance |
 |---|---|
 | `acf_*_lag1`, `acf_*_lag2` | correlation with itself 1 or 2 samples earlier: how smooth it is |
-| `cc_X*_X*_lag1` | correlation with another axis 1 sample earlier: do the axes move together |
+| `cc_X*_X*_lag<k>` | correlation with another axis delayed by `k` = 0, 1, 2 samples (`m1`, `m2` delay the first one): do the axes move together, and which one leads |
 
 </details>
 

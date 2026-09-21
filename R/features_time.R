@@ -318,12 +318,15 @@ time_lag_pairs <- function() {
   bind_rows(
     expand_grid(from = c("X1", "X2", "X3", "mag", "dyn_mag"), lag = 1:2) |>
       mutate(to = from, name = lag_name("acf", from, lag)),
-    tibble(from = c("X1", "X1", "X2"), to = c("X2", "X3", "X3"), lag = 1) |>
+    # the other order is the same correlation at the opposite lag, so it is left out
+    expand_grid(from = c("X1", "X2", "X3"), to = c("X1", "X2", "X3"), lag = -2:2) |>
+      filter(from < to) |>
       mutate(name = lag_name("cc", paste0(from, "_", to), lag))
   )
 }
 
 #' Compute the lagged correlation of every pair in `pairs`, as a one-row data frame
+#' (from copilot assignment)
 #' @param signals A data frame with the signals of one epoch
 #' @param pairs A data frame with the columns from, to, lag and name
 lagged_cors <- function(signals, pairs = time_lag_pairs()) {
