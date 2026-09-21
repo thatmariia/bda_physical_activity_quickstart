@@ -47,11 +47,10 @@ get_fit_spec <- function(
       tuneGrid = expand.grid(alpha = 0, lambda = 10^seq(-2.5, -0.5, length.out = 9))
     ),
     knn = list(
-        tuneGrid = expand.grid(k = seq(1, 51, by = 2))
+      tuneGrid = expand.grid(k = seq(1, 51, by = 2))
     ),
     naive_bayes = list(
-        tuneGrid = expand.grid(laplace = 0, usekernel = c(FALSE, TRUE), adjust = c(0.5, 1, 2)
-    )
+      tuneGrid = expand.grid(laplace = 0, usekernel = c(FALSE, TRUE), adjust = c(0.5, 1, 2))
     ),
     list()
   )
@@ -90,7 +89,7 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
 
     #' Train a model with caret, passing extra arguments through
     train_model <- function(formula, data, weights, method, trControl, ...) {
-    caret::train(formula, data = data, weights = weights, method = method, trControl = trControl, ...)
+      caret::train(formula, data = data, weights = weights, method = method, trControl = trControl, ...)
     }
 
     fit <- tryCatch(

@@ -91,7 +91,7 @@ source(here::here("R", "preprocess.R"))
 
 ```{r}
 pp <- fit_preprocess(df_train)
-df_train_pp  <- apply_preprocess(df_train, pp)
+df_train_pp <- apply_preprocess(df_train, pp)
 ```
 
 ```{r}

@@ -22,8 +22,8 @@ We do not include the following options:
 # only use a subset now to save time
 opts <- expand_grid(
   method = c("qda", "knn", "naive_bayes", "glmnet", "lda"),
-  term_mode = c("nomode"),  # + "add", "inter"
-  term = c("noterm"),  # + "km_cluster", "km_dist"
+  term_mode = c("nomode"), # + "add", "inter"
+  term = c("noterm"), # + "km_cluster", "km_dist"
   weighting = c("unweighted", "weighted"),
   pca = c(1, 0.95, 0.7)
 ) |>
@@ -61,7 +61,9 @@ source(here::here("R", "models.R"))
 # ==> START LLM https://chatgpt.com/share/6aab8916-1138-83eb-b17f-1e899eec877c
 library(doParallel)
 n_cores <- parallel::detectCores()
-if (!on_kaggle) { n_cores <- n_cores - 1 }
+if (!on_kaggle) {
+  n_cores <- n_cores - 1
+}
 cl <- makePSOCKcluster(n_cores)
 registerDoParallel(cl)
 # ==> END LLM
