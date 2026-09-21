@@ -69,11 +69,11 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
   # ==> START LLM https://chatgpt.com/share/6ab0e864-2034-83eb-be85-7968bad11e46
   folds <- unlist(
     lapply(seq_len(repeats), function(r) {
-            f <- groupKFold(df$user_id, k = number)
-            names(f) <- paste0("Fold", seq_along(f), ".Rep", r)
-            f
-        }),
-        recursive = FALSE
+      f <- groupKFold(df$user_id, k = number)
+      names(f) <- paste0("Fold", seq_along(f), ".Rep", r)
+      f
+    }),
+    recursive = FALSE
   )
   # ==> END LLM
   trcntr <- caret::trainControl(method = "cv", index = folds, verboseIter = FALSE, allowParallel = TRUE)

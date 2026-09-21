@@ -51,7 +51,6 @@ progressr::with_progress({
 })
 df_test <- df_test |> select(-aggr_activity, -activity_confidence)
 
-# Stop the workers
 future::plan(future::sequential)
 ```
 

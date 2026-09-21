@@ -3,7 +3,7 @@
 # ==========================================================
 
 n_cores <- function() {
-    parallel::detectCores() - !on_kaggle
+  parallel::detectCores() - !on_kaggle
 }
 
 #' Parse a file and extract joined time and frequency domain features.
