@@ -20,6 +20,7 @@ Define options for model training, which are used to construct different model c
 | `term` | The additional terms to include in the model |
 | `weighting` | Whether to use weighted or unweighted samples (defined by "activity_confidence") |
 | `pca` | The proportion of variance to retain in PCA (doesn't apply PCA when `pca` is 1) |
+| `corr` | Whether to remove highly correlated features before fitting or not |
 
 We do not include the following options:
 - `term_mode`: "add", "inter" because they are expensive to compute. Some show improvements but previous runs showed they're not significant.
@@ -33,7 +34,8 @@ opts <- expand_grid(
   term_mode = c("nomode"), # + "add", "inter"
   term = c("noterm"), # + "km_cluster", "km_dist"
   weighting = c("unweighted", "weighted"),
-  pca = c(1, 0.95, 0.7)
+  pca = c(1, 0.95, 0.7),
+  corr = c("corr", "nocorr")
 ) |>
   # if there's a term but no mode, nothing would happen to it
   filter(!(term_mode == "nomode" & term != "noterm")) |>
@@ -48,6 +50,9 @@ opts <- expand_grid(
   filter(!(method != "qda" & pca < 0.95)) |>
   # glmnet shrinks the coefficients itself, so it has no need for pca
   filter(!(method == "glmnet" & pca < 1)) |>
+  # glmnet shrinks correlated features together, so it does better with all of them,
+  # while the other methods need the correlated ones removed
+  filter((corr == "nocorr") == (method == "glmnet")) |>
   # this combo takes way too long
   filter(!(term_mode == "inter" & term == "km_dist"))
 

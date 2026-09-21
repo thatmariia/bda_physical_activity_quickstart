@@ -11,9 +11,13 @@ df_feat <- function(df) {
 #' @param df The input data frame
 #' @param pca The share of the variance the principal components should keep
 #'   (1 = keep the features themselves, no pca)
+#' @param corr Whether to remove highly correlated features
 #' @return A preprocessing pipeline
-fit_preprocess <- function(df, pca = 1) {
-  methods <- c("nzv", "corr", "center", "scale")
+fit_preprocess <- function(df, pca = 1, corr = TRUE) {
+  methods <- c("nzv", "center", "scale")
+  if (corr) {
+    methods <- c(methods, "corr")
+  }
   if (pca < 1) {
     methods <- c(methods, "pca")
   }
