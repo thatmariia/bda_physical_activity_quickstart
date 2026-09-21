@@ -2,64 +2,52 @@
 # == FUNCTIONS FOR FREQUENCY DOMAIN FEATURES
 # ==========================================================
 
+# ----------------------------------------------------------
+# -- Shape of the spectrum
+# ----------------------------------------------------------
+
+#' Compute a moment of the frequency distribution described by the spectrum
+#' (k = 1 gives the mean frequency, k > 1 the central moment of that order)
+spectral_moment <- function(freq, spec, k) {
+  total <- sum(spec)
+  if (total == 0) {
+    return(0)
+  }
+  # the spectrum as a probability distribution over the frequencies
+  p <- spec / total
+  mean_freq <- sum(freq * p)
+  if (k == 1) {
+    return(mean_freq)
+  }
+  return(sum((freq - mean_freq)^k * p))
+}
+
 #' Compute the mean frequency of a signal
 mean_frequency <- function(freq, spec) {
-  delta_f <- freq[2] - freq[1] # gap size between frequencies
-  normalizing_constant <- sum(spec * delta_f) # ≈ ∫S(f)df
-  mean_freq <- sum(freq * spec * delta_f) / normalizing_constant
-  return(mean_freq)
+  spectral_moment(freq, spec, 1)
 }
 
 #' Compute the standard deviation of the frequency of a signal
 sd_frequency <- function(freq, spec) {
-  mean_freq <- mean_frequency(freq, spec)
-  delta_freq <- freq[2] - freq[1]
-  normalizing_constant <- sum(spec * delta_freq)
-  if (normalizing_constant == 0) {
-    return(0)
-  }
-  ds <- (freq - mean_freq)^2
-  var_freq <- sum(ds * spec * delta_freq) / normalizing_constant
-  return(sqrt(var_freq))
+  sqrt(spectral_moment(freq, spec, 2))
 }
 
 #' Compute the skewness of the frequency of a signal
 skew_frequency <- function(freq, spec) {
-  mean_freq <- mean_frequency(freq, spec)
   sd_freq <- sd_frequency(freq, spec)
-  delta_freq <- freq[2] - freq[1]
-  normalizing_constant <- sum(spec * delta_freq)
-  if (normalizing_constant == 0 || sd_freq == 0) {
+  if (sd_freq == 0) {
     return(0)
   }
-  dc <- (freq - mean_freq)^3
-  skew <- sum(dc * spec * delta_freq) / (normalizing_constant * sd_freq^3)
-  return(skew)
+  return(spectral_moment(freq, spec, 3) / sd_freq^3)
 }
 
 #' Compute the kurtosis of the frequency of a signal
 kurtosis_frequency <- function(freq, spec) {
-  mean_freq <- mean_frequency(freq, spec)
   sd_freq <- sd_frequency(freq, spec)
-  delta_freq <- freq[2] - freq[1]
-  normalizing_constant <- sum(spec * delta_freq)
-  if (normalizing_constant == 0 || sd_freq == 0) {
+  if (sd_freq == 0) {
     return(0)
   }
-  df <- (freq - mean_freq)^4
-  kurt <- sum(df * spec * delta_freq) / (normalizing_constant * sd_freq^4)
-  return(kurt)
-}
-
-#' Compute the total power of a signal
-spectral_power <- function(freq, spec) {
-  df <- mean(diff(freq))
-  sum(spec * df)
-}
-
-#' Compute the peak power of a signal
-peak_power <- function(freq, spec) {
-  max(spec[freq > 0])
+  return(spectral_moment(freq, spec, 4) / sd_freq^4)
 }
 
 #' Compute the spectral entropy of a signal
@@ -67,116 +55,97 @@ spectral_entropy <- function(spec) {
   if (length(spec) == 0 || sum(spec) == 0) {
     return(0)
   }
-  spec <- spec[spec > 0]
-  spec <- spec / sum(spec)
-  return(-sum(spec * log2(spec)) / log2(length(spec)))
-}
-
-#' Compute the spectral bandwidth of a signal
-spectral_bandwidth <- function(freq, spec) {
-  mean_freq <- mean_frequency(freq, spec)
-  tot <- sum(spec)
-  if (tot == 0) {
-    return(0)
-  }
-  ds <- (freq - mean_freq)^2
-  return(sqrt(sum(ds * spec) / tot))
+  # normalised by the entropy of a flat spectrum, so it does not depend on its length
+  return(shannon_entropy(spec) / log(sum(spec > 0)))
 }
 
 #' Compute the spectral edge frequency of a signal
 spectral_edge_frequency <- function(freq, spec, k = 0.9) {
-  tot <- sum(spec)
-  if (tot == 0) {
+  total <- sum(spec)
+  if (total == 0) {
     return(0)
   }
-  cumsum_spec <- cumsum(spec)
-  threshold <- k * tot
-  edge_freq <- which(cumsum_spec >= threshold)[1]
-  return(freq[edge_freq])
+  return(freq[which(cumsum(spec) >= k * total)[1]])
+}
+
+#' Compute the share of the spectral power in one of `n_bins` equal frequency bins
+#' (from Reyes-Ortiz et al., 2015)
+band_bin_share <- function(spec, bin, n_bins = 8) {
+  total <- sum(spec)
+  if (total == 0) {
+    return(0)
+  }
+  bin_id <- ceiling(seq_along(spec) / length(spec) * n_bins)
+  return(sum(spec[bin_id == bin]) / total)
+}
+
+# ----------------------------------------------------------
+# -- Dominant frequency
+# ----------------------------------------------------------
+
+#' Find the position of the strongest frequency of a signal above `min_hz`, 0 if there is none
+dominant_index <- function(freq, spec, sample_rate = 50, min_hz = 0.5) {
+  keep <- which(freq * sample_rate >= min_hz)
+  if (length(keep) == 0 || sum(spec[keep]) == 0) {
+    return(0)
+  }
+  return(keep[which.max(spec[keep])])
 }
 
 #' Compute the dominant frequency of a signal in Hz
-dominant_frequency_hz <- function(freq, spec, sample_rate = 50, min_hz = 0.5) {
-  freq_hz <- freq * sample_rate
-  keep <- freq_hz >= min_hz
-  if (!any(keep) || sum(spec[keep]) == 0) {
+dominant_frequency <- function(freq, spec, sample_rate = 50, min_hz = 0.5) {
+  i <- dominant_index(freq, spec, sample_rate, min_hz)
+  if (i == 0) {
     return(0)
   }
-  freq_hz[keep][which.max(spec[keep])]
+  return(freq[i] * sample_rate)
 }
 
+#' Compute the share of the total power that is at the dominant frequency
 dominant_power_ratio <- function(freq, spec, sample_rate = 50, min_hz = 0.5) {
-  dom_freq <- dominant_frequency_hz(freq, spec, sample_rate, min_hz)
-  if (dom_freq == 0) {
+  i <- dominant_index(freq, spec, sample_rate, min_hz)
+  if (i == 0) {
     return(0)
   }
-  return(spec[which.min(abs(freq * sample_rate - dom_freq))] / sum(spec))
+  return(spec[i] / sum(spec))
 }
 
-#' Compute the ratio of power in a specific frequency band to the total power
-band_power_ratio <- function(freq, spec, lb, ub, sample_rate = 50) {
-  freq_hz <- freq * sample_rate
-  keep <- freq_hz >= lb & freq_hz <= ub
-  if (!any(keep) || sum(spec[keep]) == 0) {
-    return(0)
-  }
-  return(sum(spec[keep]) / sum(spec))
-}
+# ----------------------------------------------------------
+# -- Feature extraction
+# ----------------------------------------------------------
 
 #' Extract frequency domain features from a spectrum data frame,
 #' which is assumed to be already segmented into epochs
 #' @param spectrum_df A data frame containing the spectrum data with columns: epoch, freq, spec1, spec2, ...
 #' @return A data frame containing the extracted frequency domain features for each epoch
 get_frequency_domain_features <- function(spectrum_df) {
-  userfreqdom <- spectrum_df %>%
-    group_by(epoch) %>%
+  frequency_domain_features <- spectrum_df |>
+    group_by(epoch) |>
     summarise(
-      # Signal 1
-      dom_power_ratio1 = dominant_power_ratio(freq, spec1),
-      dom_freq1 = freq[which.max(spec1)],
-      dom_hz_freq1 = dominant_frequency_hz(freq, spec1),
-      mean_freq1 = mean_frequency(freq, spec1),
-      sd_freq1 = sd_frequency(freq, spec1),
-      skew_freq1 = skew_frequency(freq, spec1),
-      kurt_freq1 = kurtosis_frequency(freq, spec1),
-      entropy1 = spectral_entropy(spec1),
-      bandwidth1 = spectral_bandwidth(freq, spec1),
-      edge_freq1 = spectral_edge_frequency(freq, spec1),
-      i1_band1 = band_power_ratio(freq, spec1, 0, 0.5),
-      i2_band1 = band_power_ratio(freq, spec1, 0.5, 3),
-      i3_band1 = band_power_ratio(freq, spec1, 3, 10),
-      i4_band1 = band_power_ratio(freq, spec1, 10, 25),
-
-      # Signal 2
-      dom_power_ratio2 = dominant_power_ratio(freq, spec2),
-      dom_freq2 = freq[which.max(spec2)],
-      dom_hz_freq2 = dominant_frequency_hz(freq, spec2),
-      mean_freq2 = mean_frequency(freq, spec2),
-      sd_freq2 = sd_frequency(freq, spec2),
-      skew_freq2 = skew_frequency(freq, spec2),
-      kurt_freq2 = kurtosis_frequency(freq, spec2),
-      entropy2 = spectral_entropy(spec2),
-      bandwidth2 = spectral_bandwidth(freq, spec2),
-      edge_freq2 = spectral_edge_frequency(freq, spec2),
-      i1_band2 = band_power_ratio(freq, spec2, 0, 0.5),
-      i2_band2 = band_power_ratio(freq, spec2, 0.5, 3),
-      i3_band2 = band_power_ratio(freq, spec2, 3, 10),
-      i4_band2 = band_power_ratio(freq, spec2, 10, 25),
-
-      # Signal 3
-      dom_power_ratio3 = dominant_power_ratio(freq, spec3),
-      dom_freq3 = freq[which.max(spec3)],
-      dom_hz_freq3 = dominant_frequency_hz(freq, spec3),
-      mean_freq3 = mean_frequency(freq, spec3),
-      sd_freq3 = sd_frequency(freq, spec3),
-      skew_freq3 = skew_frequency(freq, spec3),
-      kurt_freq3 = kurtosis_frequency(freq, spec3),
-      entropy3 = spectral_entropy(spec3),
-      bandwidth3 = spectral_bandwidth(freq, spec3),
-      edge_freq3 = spectral_edge_frequency(freq, spec3),
-      i1_band3 = band_power_ratio(freq, spec3, 0, 0.5),
-      i2_band3 = band_power_ratio(freq, spec3, 0.5, 3),
-      i3_band3 = band_power_ratio(freq, spec3, 3, 10),
-      i4_band3 = band_power_ratio(freq, spec3, 10, 25),
+      across(
+        c(spec1, spec2, spec3),
+        list(
+          # shape of the spectrum
+          mean_freq = \(s) mean_frequency(freq, s),
+          sd_freq = \(s) sd_frequency(freq, s),
+          skew_freq = \(s) skew_frequency(freq, s),
+          kurt_freq = \(s) kurtosis_frequency(freq, s),
+          spec_entropy = spectral_entropy,
+          edge_freq = \(s) spectral_edge_frequency(freq, s),
+          bin1 = \(s) band_bin_share(s, 1),
+          bin2 = \(s) band_bin_share(s, 2),
+          bin3 = \(s) band_bin_share(s, 3),
+          bin4 = \(s) band_bin_share(s, 4),
+          bin5 = \(s) band_bin_share(s, 5),
+          bin6 = \(s) band_bin_share(s, 6),
+          bin7 = \(s) band_bin_share(s, 7),
+          bin8 = \(s) band_bin_share(s, 8),
+          # dominant frequency
+          dom_freq = \(s) dominant_frequency(freq, s),
+          dom_power_ratio = \(s) dominant_power_ratio(freq, s)
+        ),
+        .names = "{.fn}_X{sub('spec', '', .col)}"
+      )
     )
+  return(frequency_domain_features)
 }

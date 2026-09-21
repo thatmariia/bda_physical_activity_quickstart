@@ -1,0 +1,40 @@
+```{r, include = FALSE}
+source(here::here("setup.R"))
+for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
+acc_df <- readRDS(file.path(output_dir, "acc_df.rds"))
+gyro_df <- readRDS(file.path(output_dir, "gyro_df.rds"))
+```
+
+# Joint frequency and time domain features
+
+The accelerometer measures translation, the gyroscope rotation. Joint features
+describe how the two of them relate.
+
+## Features
+
+<details>
+<summary>Joint features:</summary>
+
+| Feature | Relevance |
+|---|---|
+| `mean_dot`, `sd_dot` | how aligned acceleration and rotation are |
+| `gyro_acc_rms_ratio` | rotation- vs translation-dominated movement |
+| `grav_angle_gyro` | angle between the rotation axis and gravity: which way a transition goes |
+| `cc_<acc>_<gyro>_lag<k>` | correlation of an acc and a gyro channel, the gyro delayed by `k` = 0, 1, 2 samples (`m1`, `m2` delay the acc instead): do translation and rotation happen together, and which one leads |
+
+</details>
+
+## Feature extraction
+
+```{r, fold = "Relevant functions for joint feature extraction", code = readLines(here::here("R", "features_joint.R"))}
+source(here::here("R", "features_joint.R"))
+```
+
+```{r}
+# Join the acc and gyro signals of the example recording, sample by sample
+joint_df <- join_sensors(acc_df, gyro_df)
+
+# Compute joint features per epoch
+joint_features <- get_joint_features(joint_df)
+head(joint_features)
+```

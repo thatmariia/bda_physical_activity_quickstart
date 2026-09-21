@@ -40,10 +40,8 @@ compute_spectrum <- function(signal, gaussian_sigma = 3) {
 #' including the frequency bins and corresponding spectral densities for each signal.
 convert_signal_to_spectrum_df <- function(signal_df, n_samples_per_epoch = 128, sample_rate = 50) {
   spectrum_df <- signal_df |>
-    mutate(
-      epoch = sampleid %/% n_samples_per_epoch,
-      position = sampleid %% n_samples_per_epoch
-    ) |>
+    add_epoch(n_samples_per_epoch) |>
+    mutate(position = sampleid %% n_samples_per_epoch) |>
     reframe(
       {
         # ==> START LLM https://chatgpt.com/share/6aab570f-9e38-83ed-a64e-fcd83ae13599

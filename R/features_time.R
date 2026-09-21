@@ -2,22 +2,51 @@
 # == FUNCTIONS FOR TIME DOMAIN FEATURES
 # ==========================================================
 
-#' Compute the lagged correlation between two signals
-lagged_cor <- function(x, y = x, lag = 0) {
-  # compute correlation between x and a time shifted y
-  r_lagged <- cor(x, dplyr::lag(y, lag), use = "pairwise")
-  return(r_lagged)
+# ----------------------------------------------------------
+# -- Epochs and magnitudes
+# ----------------------------------------------------------
+
+#' Add the epoch each sample belongs to
+add_epoch <- function(df, n_samples_per_epoch = 128) {
+  df |> mutate(epoch = sampleid %/% n_samples_per_epoch)
 }
+
+#' Compute the magnitude of a three-axial signal
+magnitude <- function(x, y, z) {
+  sqrt(x^2 + y^2 + z^2)
+}
+
+#' Compute the magnitude of a three-axial signal with its mean (gravity) removed
+dynamic_magnitude <- function(x, y, z) {
+  magnitude(x - mean(x), y - mean(y), z - mean(z))
+}
+
+# ----------------------------------------------------------
+# -- Basic statistics
+# ----------------------------------------------------------
 
 #' Compute the root mean square of a signal
 rms <- function(x) {
   sqrt(mean(x^2))
 }
 
-#' Compute the magnitude area of a signal
-sma <- function(x, y, z) {
-  mean(abs(x) + abs(y) + abs(z))
+#' Compute the Shannon entropy of a distribution given by (unnormalised) weights
+shannon_entropy <- function(p) {
+  p <- p[p > 0] / sum(p)
+  return(-sum(p * log(p)))
 }
+
+#' Compute the entropy of the distribution of signal values
+entropy <- function(x, bins = 10) {
+  if (length(unique(x)) < 2) {
+    return(0)
+  }
+  return(shannon_entropy(hist(x, breaks = bins, plot = FALSE)$counts))
+}
+
+# ----------------------------------------------------------
+# -- Change and trend
+# ----------------------------------------------------------
 
 #' Compute the mean absolute first difference of a signal
 mean_abs_diff <- function(x) {
@@ -29,29 +58,18 @@ max_abs_diff <- function(x) {
   max(abs(diff(x)))
 }
 
-#' Compute the difference between the means of first and last k% of values of a signal
-diff_start_end <- function(x, k = 0.1) {
-  if (length(x) < 2) {
+#' Compute the standard deviation of the jerk (rate of change) of a signal
+#' (from Reyes-Ortiz et al., 2015)
+jerk_sd <- function(x, sample_rate = 50) {
+  if (length(x) < 3) {
     return(0)
   }
-  n <- length(x)
-  m <- max(1, floor(n * k))
-  return(mean(tail(x, m)) - mean(head(x, m)))
+  return(sd(diff(x)) * sample_rate)
 }
 
-#' Compute the difference in orientation between three signals
-diff_orientation <- function(x, y, z) {
-  diffs <- c(
-    diff_start_end(x),
-    diff_start_end(y),
-    diff_start_end(z)
-  )
-  return(sqrt(sum(diffs^2)))
-}
-
-#' Compute the jerk of a signal
+#' Compute the jerk of a three-axial signal
 jerk <- function(x, y, z) {
-  sqrt(diff(x)^2 + diff(y)^2 + diff(z)^2)
+  magnitude(diff(x), diff(y), diff(z))
 }
 
 #' Compute the slope of a signal
@@ -64,10 +82,109 @@ slope <- function(x) {
   return(coef(fit)[2])
 }
 
-#' Compute the dominance of a signal
-dominance <- function(x, y, z) {
-  max(c(sd(x), sd(y), sd(z))) / sum(c(sd(x), sd(y), sd(z)))
+#' Compute the difference between the means of the last and first k share of a signal
+diff_start_end <- function(x, k = 0.1) {
+  if (length(x) < 2) {
+    return(0)
+  }
+  m <- max(1, floor(length(x) * k))
+  return(mean(tail(x, m)) - mean(head(x, m)))
 }
+
+#' Compute the difference between the movement (RMS around the mean)
+#' of the last and first k share of a signal
+#' (from copilot assignment)
+spread_diff_start_end <- function(x, k = 0.1) {
+  m <- max(1, floor(length(x) * k))
+  if (m < 2) {
+    return(0)
+  }
+  rms_around_mean <- function(y) rms(y - mean(y))
+  return(rms_around_mean(tail(x, m)) - rms_around_mean(head(x, m)))
+}
+
+#' Compute when the largest deviation from the mean occurs, as a share of the epoch
+#' (from copilot assignment)
+excursion_time <- function(x) {
+  if (length(x) < 2) {
+    return(0)
+  }
+  return((which.max(abs(x - mean(x))) - 1) / (length(x) - 1))
+}
+
+# ----------------------------------------------------------
+# -- Rhythm
+# ----------------------------------------------------------
+
+#' Compute rate of zero crossings in a signal
+zero_cross_rate <- function(x) {
+  if (length(x) < 2) {
+    return(0)
+  }
+  side <- sign(x - mean(x))
+  return(mean(side[-1] != side[-length(side)]))
+}
+
+#' Compute the rate of local maxima in a signal
+peak_rate <- function(x) {
+  if (length(x) < 3) {
+    return(0)
+  }
+  dx <- diff(x)
+  n_peaks <- sum(dx[-length(dx)] > 0 & dx[-1] < 0)
+  return(n_peaks / (length(x) - 2))
+}
+
+#' Compute the autocorrelations of a signal at lags 1 to max_lag
+#' (from copilot assignment)
+autocorrelations <- function(x, max_lag = 64) {
+  max_lag <- min(max_lag, length(x) - 2)
+  if (max_lag < 1 || sd(x) == 0) {
+    return(numeric(0))
+  }
+  return(drop(acf(x, lag.max = max_lag, plot = FALSE)$acf)[-1])
+}
+
+#' Find the lag of the strongest autocorrelation peak of a signal
+#' (from copilot assignment)
+acf_peak_lag <- function(x, min_lag = 5, max_lag = 64) {
+  r <- autocorrelations(x, max_lag)
+  if (length(r) < min_lag + 1) {
+    return(0)
+  }
+  # Local maxima of the autocorrelation, ignoring very short lags
+  lags <- seq(min_lag, length(r) - 1)
+  is_peak <- r[lags] > r[lags - 1] & r[lags] >= r[lags + 1]
+  if (!any(is_peak)) {
+    return(0)
+  }
+  peak_lags <- lags[is_peak]
+  return(peak_lags[which.max(r[peak_lags])])
+}
+
+#' Compute the height of the strongest autocorrelation peak of a signal
+#' (from copilot assignment)
+acf_peak <- function(x, min_lag = 5, max_lag = 64) {
+  lag <- acf_peak_lag(x, min_lag, max_lag)
+  if (lag == 0) {
+    return(0)
+  }
+  return(autocorrelations(x, max_lag)[lag])
+}
+
+#' Compute one autoregression coefficient of a signal (Burg method)
+#' (from Reyes-Ortiz et al., 2015)
+ar_coefficient <- function(x, k, order = 4) {
+  if (length(x) <= 2 * order || sd(x) == 0) {
+    return(0)
+  }
+  fit <- ar.burg(x, aic = FALSE, order.max = order, demean = TRUE)
+  return(fit$ar[k])
+}
+
+# ----------------------------------------------------------
+# -- Rotation
+# ----------------------------------------------------------
 
 #' Compute the integrated rotation of a signal
 rotation <- function(x, fs) {
@@ -75,42 +192,42 @@ rotation <- function(x, fs) {
 }
 
 #' Compute the absolute integrated rotation of a signal
-abs_rotation <- function(x, fs) {
+rotation_abs <- function(x, fs) {
   sum(abs(x)) / fs
-}
-
-#' Compute the positive area of a signal
-pos_area <- function(x, fs) {
-  sum(pmax(0, x)) / fs
-}
-
-#' Compute the negative area of a signal
-neg_area <- function(x, fs) {
-  sum(abs(pmin(0, x))) / fs
 }
 
 #' Compute the asymmetry of the rotation of a signal
 rotation_asym <- function(x, fs) {
-  pos <- pos_area(x, fs)
-  neg <- neg_area(x, fs)
+  pos <- sum(pmax(0, x)) / fs
+  neg <- sum(abs(pmin(0, x))) / fs
   if (pos + neg == 0) {
     return(0)
   }
   return((pos - neg) / (pos + neg))
 }
 
-#' Compute rate of zero crossings in a signal
-zero_cross_rate <- function(x) {
-  if (length(x) < 2) {
-    return(0)
-  }
-  sum(diff(x) * diff(x, lag = 1) < 0) / (length(x) - 1)
+# ----------------------------------------------------------
+# -- Orientation and gravity
+# ----------------------------------------------------------
+
+#' Compute the mean vector of a three-axial signal
+mean_vector <- function(x, y, z) {
+  c(mean(x), mean(y), mean(z))
 }
 
-#' Compute the angle of the gravity vector
+#' Compute the angle between two vectors in degrees, 0 if either has no length
+vector_angle <- function(a, b) {
+  norm_a <- sqrt(sum(a^2))
+  norm_b <- sqrt(sum(b^2))
+  if (norm_a == 0 || norm_b == 0) {
+    return(0)
+  }
+  return(acos(pmin(1, pmax(-1, sum(a * b) / (norm_a * norm_b)))) * 180 / pi)
+}
+
+#' Compute the angle between the first axis and gravity (the mean vector)
 gravity_angle <- function(x, y, z) {
-  mag <- sqrt(mean(x)^2 + mean(y)^2 + mean(z)^2)
-  return(acos(mean(x) / mag) * 180 / pi)
+  vector_angle(mean_vector(x, y, z), c(1, 0, 0))
 }
 
 #' Compute the range of the gravity angle
@@ -122,7 +239,7 @@ gravity_angle_range <- function(x, mag) {
   return(max(angles) - min(angles))
 }
 
-#' Compute the change in gravity angle
+#' Compute the change in gravity angle between the start and end of a three-axial signal
 gravity_angle_change <- function(x, y, z, k = 0.1) {
   if (length(x) < 2) {
     return(0)
@@ -133,20 +250,97 @@ gravity_angle_change <- function(x, y, z, k = 0.1) {
   return(end - start)
 }
 
-#' Compute the angle between two signals
-sigangle <- function(x, y) {
+#' Compute the difference in orientation between the start and end of a three-axial signal
+diff_orientation <- function(x, y, z) {
+  diffs <- c(
+    diff_start_end(x),
+    diff_start_end(y),
+    diff_start_end(z)
+  )
+  return(sqrt(sum(diffs^2)))
+}
+
+# ----------------------------------------------------------
+# -- Relationships between axes
+# ----------------------------------------------------------
+
+#' Compute the magnitude area of a three-axial signal
+sma <- function(x, y, z) {
+  mean(abs(x) + abs(y) + abs(z))
+}
+
+#' Compute the share of the variance that is along the first axis
+var_share <- function(x, y, z) {
+  var(x) / (var(x) + var(y) + var(z))
+}
+
+#' Compute the share of the strongest axis in the overall movement
+axis_dominance <- function(x, y, z) {
+  max(c(sd(x), sd(y), sd(z))) / sum(c(sd(x), sd(y), sd(z)))
+}
+
+#' Compute the angle of the mean signal in the plane of two axes
+plane_angle <- function(x, y) {
   atan2(mean(x), mean(y)) * 180 / pi
 }
 
-#' Compute the var dominance of a signal
-var_dominance <- function(x, y, z) {
-  var(x) / (var(y) + var(z))
+# ----------------------------------------------------------
+# -- Correlations
+# ----------------------------------------------------------
+
+#' Compute the correlation between a signal and another one delayed by `lag` samples,
+#' over the part of the epoch where they overlap, 0 if either is constant
+#' (a negative lag delays the first signal instead)
+lagged_cor <- function(x, y = x, lag = 0) {
+  if (lag < 0) {
+    return(lagged_cor(y, x, -lag))
+  }
+  n <- length(x)
+  if (n - lag < 2) {
+    return(0)
+  }
+  x_now <- x[seq.int(lag + 1, n)]
+  y_before <- y[seq_len(n - lag)]
+  if (sd(x_now) == 0 || sd(y_before) == 0) {
+    return(0)
+  }
+  return(cor(x_now, y_before))
 }
 
-#' Compute the variance ratio of a signal
-var_ratio <- function(x, y, z) {
-  var(x) / (var(x) + var(y) + var(z))
+#' Name a lagged correlation, e.g. cc_X1_X2_lag1 (a negative lag becomes lagm1)
+lag_name <- function(prefix, signals, lag) {
+  paste0(prefix, "_", signals, "_lag", ifelse(lag < 0, paste0("m", -lag), lag))
 }
+
+#' Signals to correlate with a lagged copy of themselves (autocorrelations)
+#' or of another axis (cross-correlations)
+time_lag_pairs <- function() {
+  bind_rows(
+    expand_grid(from = c("X1", "X2", "X3", "mag", "dyn_mag"), lag = 1:2) |>
+      mutate(to = from, name = lag_name("acf", from, lag)),
+    # the other order is the same correlation at the opposite lag, so it is left out
+    expand_grid(from = c("X1", "X2", "X3"), to = c("X1", "X2", "X3"), lag = -2:2) |>
+      filter(from < to) |>
+      mutate(name = lag_name("cc", paste0(from, "_", to), lag))
+  )
+}
+
+#' Compute the lagged correlation of every pair in `pairs`, as a one-row data frame
+#' (from copilot assignment)
+#' @param signals A data frame with the signals of one epoch
+#' @param pairs A data frame with the columns from, to, lag and name
+lagged_cors <- function(signals, pairs = time_lag_pairs()) {
+  values <- pmap_dbl(
+    pairs,
+    \(from, to, lag, name) lagged_cor(signals[[from]], signals[[to]], lag)
+  )
+  names(values) <- pairs$name
+  return(as_tibble_row(values))
+}
+
+# ----------------------------------------------------------
+# -- Feature extraction
+# ----------------------------------------------------------
 
 #' Extract all time domain features from a signal data frame segmented into epochs
 #' @param signal_df A data frame containing the signal data with columns: userid, trial, sampleid, X1, X2, X3, activity
@@ -155,12 +349,12 @@ var_ratio <- function(x, y, z) {
 #' @return A data frame containing the extracted time domain features for each epoch
 get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sample_rate = 50) {
   time_domain_features <- signal_df |>
-    # partition into epochs and add an epoch ID variable
-    mutate(
-      epoch = sampleid %/% n_samples_per_epoch,
-      acc_mag = sqrt(X1^2 + X2^2 + X3^2)
-    ) |>
-    # extract statistical features from each epoch
+    # partition into epochs and add the magnitude of the signal
+    add_epoch(n_samples_per_epoch) |>
+    mutate(mag = magnitude(X1, X2, X3)) |>
+    # remove gravity per epoch
+    mutate(dyn_mag = dynamic_magnitude(X1, X2, X3), .by = epoch) |>
+    # extract features from each epoch
     group_by(epoch) |>
     summarise(
       # Activity label for the epoch = most common value (mode)
@@ -171,157 +365,87 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       # Keep starting sample ID of the epoch
       sampleid = sampleid[1],
 
-      # X1
-      mean_X1 = mean(X1),
-      median_X1 = median(X1),
-      sd_X1 = sd(X1),
-      var_X1 = var(X1),
-      min_X1 = min(X1),
-      max_X1 = max(X1),
-      range_X1 = max(X1) - min(X1),
-      rms_X1 = rms(X1),
-      q05_X1 = quantile(X1, 0.05),
-      q25_X1 = quantile(X1, 0.25),
-      q75_X1 = quantile(X1, 0.75),
-      q95_X1 = quantile(X1, 0.95),
-      iqr_X1 = IQR(X1),
-      var_dom_X1 = var_dominance(X1, X2, X3),
-      var_rat_X1 = var_ratio(X1, X2, X3),
-      skew_X1 = e1071::skewness(X1),
-      kurtosis_X1 = e1071::kurtosis(X1),
-      ar1_lag1_X1 = lagged_cor(X1, lag = 1),
-      ar1_lag2_X1 = lagged_cor(X1, lag = 2),
-      mean_abs_diff_X1 = mean_abs_diff(X1),
-      max_abs_diff_X1 = max_abs_diff(X1),
-      slope_X1 = slope(X1),
-      diff_X1 = diff_start_end(X1),
-      rot_X1 = rotation(X1, sample_rate),
-      rot_abs_X1 = abs_rotation(X1, sample_rate),
-      pos_X1 = pos_area(X1, sample_rate),
-      neg_X1 = neg_area(X1, sample_rate),
-      rot_asym_X1 = rotation_asym(X1, sample_rate),
-      zcr_X1 = zero_cross_rate(X1),
-      grav_range_X1 = gravity_angle_range(X1, acc_mag),
-      grav_X1 = gravity_angle(X1, X2, X3),
-      grav_change_X1 = gravity_angle_change(X1, X2, X3),
+      # Features of each axis and magnitude (e.g. mean_X1, mean_mag)
+      across(
+        c(X1, X2, X3, mag, dyn_mag),
+        list(
+          # basic statistics
+          mean = mean,
+          median = median,
+          sd = sd,
+          mad = mad,
+          min = min,
+          max = max,
+          q05 = \(x) quantile(x, 0.05),
+          q25 = \(x) quantile(x, 0.25),
+          q75 = \(x) quantile(x, 0.75),
+          q95 = \(x) quantile(x, 0.95),
+          rms = rms,
+          skew = e1071::skewness,
+          kurt = e1071::kurtosis,
+          entropy = entropy,
+          # change and trend
+          mean_abs_diff = mean_abs_diff,
+          max_abs_diff = max_abs_diff,
+          jerk_sd = \(x) jerk_sd(x, sample_rate),
+          slope = slope,
+          diff = diff_start_end,
+          half_mean_diff = \(x) diff_start_end(x, k = 0.5),
+          half_rms_diff = \(x) spread_diff_start_end(x, k = 0.5),
+          excursion_time = excursion_time,
+          # rhythm
+          peaks = peak_rate,
+          acf_peak = acf_peak,
+          acf_peak_lag = acf_peak_lag,
+          ar1 = \(x) ar_coefficient(x, 1),
+          ar2 = \(x) ar_coefficient(x, 2),
+          ar3 = \(x) ar_coefficient(x, 3),
+          ar4 = \(x) ar_coefficient(x, 4)
+        ),
+        .names = "{.fn}_{.col}"
+      ),
 
-      # X2
-      mean_X2 = mean(X2),
-      median_X2 = median(X2),
-      sd_X2 = sd(X2),
-      var_X2 = var(X2),
-      min_X2 = min(X2),
-      max_X2 = max(X2),
-      range_X2 = max(X2) - min(X2),
-      rms_X2 = rms(X2),
-      q05_X2 = quantile(X2, 0.05),
-      q25_X2 = quantile(X2, 0.25),
-      q75_X2 = quantile(X2, 0.75),
-      q95_X2 = quantile(X2, 0.95),
-      iqr_X2 = IQR(X2),
-      var_dom_X2 = var_dominance(X2, X1, X3),
-      var_rat_X2 = var_ratio(X2, X1, X3),
-      skew_X2 = e1071::skewness(X2),
-      kurtosis_X2 = e1071::kurtosis(X2),
-      ar1_lag1_X2 = lagged_cor(X2, lag = 1),
-      ar1_lag2_X2 = lagged_cor(X2, lag = 2),
-      mean_abs_diff_X2 = mean_abs_diff(X2),
-      max_abs_diff_X2 = max_abs_diff(X2),
-      slope_X2 = slope(X2),
-      diff_X2 = diff_start_end(X2),
-      rot_X2 = rotation(X2, sample_rate),
-      rot_abs_X2 = abs_rotation(X2, sample_rate),
-      pos_X2 = pos_area(X2, sample_rate),
-      neg_X2 = neg_area(X2, sample_rate),
-      rot_asym_X2 = rotation_asym(X2, sample_rate),
-      zcr_X2 = zero_cross_rate(X2),
-      grav_range_X2 = gravity_angle_range(X2, acc_mag),
-      grav_X2 = gravity_angle(X2, X3, X1),
-      grav_change_X2 = gravity_angle_change(X2, X3, X1, k = 0.1),
+      # Features of each axis only
+      across(
+        c(X1, X2, X3),
+        list(
+          zcr = zero_cross_rate,
+          rot = \(x) rotation(x, sample_rate),
+          rot_abs = \(x) rotation_abs(x, sample_rate),
+          rot_asym = \(x) rotation_asym(x, sample_rate),
+          grav_angle_range = \(x) gravity_angle_range(x, mag)
+        ),
+        .names = "{.fn}_{.col}"
+      ),
 
-      # X3
-      mean_X3 = mean(X3),
-      median_X3 = median(X3),
-      sd_X3 = sd(X3),
-      var_X3 = var(X3),
-      min_X3 = min(X3),
-      max_X3 = max(X3),
-      range_X3 = max(X3) - min(X3),
-      rms_X3 = rms(X3),
-      q05_X3 = quantile(X3, 0.05),
-      q25_X3 = quantile(X3, 0.25),
-      q75_X3 = quantile(X3, 0.75),
-      q95_X3 = quantile(X3, 0.95),
-      iqr_X3 = IQR(X3),
-      var_rat_X3 = var_ratio(X3, X1, X2),
-      var_dom_X3 = var_dominance(X3, X1, X2),
-      skew_X3 = e1071::skewness(X3),
-      kurtosis_X3 = e1071::kurtosis(X3),
-      ar1_lag1_X3 = lagged_cor(X3, lag = 1),
-      ar1_lag2_X3 = lagged_cor(X3, lag = 2),
-      mean_abs_diff_X3 = mean_abs_diff(X3),
-      max_abs_diff_X3 = max_abs_diff(X3),
-      slope_X3 = slope(X3),
-      diff_X3 = diff_start_end(X3),
-      rot_X3 = rotation(X3, sample_rate),
-      rot_abs_X3 = abs_rotation(X3, sample_rate),
-      pos_X3 = pos_area(X3, sample_rate),
-      neg_X3 = neg_area(X3, sample_rate),
-      rot_asym_X3 = rotation_asym(X3, sample_rate),
-      zcr_X3 = zero_cross_rate(X3),
-      grav_range_X3 = gravity_angle_range(X3, acc_mag),
-      grav_X3 = gravity_angle(X3, X1, X2),
-      grav_change3 = gravity_angle_change(X3, X1, X2),
+      # Features comparing one axis with the other two
+      var_share_X1 = var_share(X1, X2, X3),
+      var_share_X2 = var_share(X2, X1, X3),
+      var_share_X3 = var_share(X3, X1, X2),
+      grav_angle_X1 = gravity_angle(X1, X2, X3),
+      grav_angle_X2 = gravity_angle(X2, X3, X1),
+      grav_angle_X3 = gravity_angle(X3, X1, X2),
+      grav_angle_change_X1 = gravity_angle_change(X1, X2, X3),
+      grav_angle_change_X2 = gravity_angle_change(X2, X3, X1),
+      grav_angle_change_X3 = gravity_angle_change(X3, X1, X2),
 
-      # Magnitude
-      mean_mag = mean(acc_mag),
-      median_mag = median(acc_mag),
-      sd_mag = sd(acc_mag),
-      var_mag = var(acc_mag),
-      min_mag = min(acc_mag),
-      max_mag = max(acc_mag),
-      range_mag = max(acc_mag) - min(acc_mag),
-      rms_mag = rms(acc_mag),
-      q05_mag = quantile(acc_mag, 0.05),
-      q25_mag = quantile(acc_mag, 0.25),
-      q75_mag = quantile(acc_mag, 0.75),
-      q95_mag = quantile(acc_mag, 0.95),
-      iqr_mag = IQR(acc_mag),
-      skew_mag = e1071::skewness(acc_mag),
-      kurtosis_mag = e1071::kurtosis(acc_mag),
-      ar1_lag1_mag = lagged_cor(acc_mag, lag = 1),
-      ar1_lag2_mag = lagged_cor(acc_mag, lag = 2),
-      mean_abs_diff_mag = mean_abs_diff(acc_mag),
-      max_abs_diff_mag = max_abs_diff(acc_mag),
-      slope_mag = slope(acc_mag),
-      diff_mag = diff_start_end(acc_mag),
-      rot_mag = rotation(acc_mag, sample_rate),
-      rot_abs_mag = abs_rotation(acc_mag, sample_rate),
-      pos_mag = pos_area(acc_mag, sample_rate),
-      neg_mag = neg_area(acc_mag, sample_rate),
-
-      # Relationships
-      ar_lag1_X1X2 = lagged_cor(X1, X2, lag = 1),
-      ar_lag1_X1X3 = lagged_cor(X1, X3, lag = 1),
-      ar_lag1_X2X3 = lagged_cor(X2, X3, lag = 1),
-      cor_X1X2 = cor(X1, X2),
-      cor_X2X1 = cor(X2, X1),
-      cor_X1X3 = cor(X1, X3),
-      cor_X3X1 = cor(X3, X1),
-      cor_X2X3 = cor(X2, X3),
-      cor_X3X2 = cor(X3, X2),
+      # Features of all three axes together
       sma = sma(X1, X2, X3),
       mean_jerk = mean(jerk(X1, X2, X3)),
       sd_jerk = sd(jerk(X1, X2, X3)),
       rms_jerk = rms(jerk(X1, X2, X3)),
-      dom = dominance(X1, X2, X3),
+      axis_dom = axis_dominance(X1, X2, X3),
       diff_orient = diff_orientation(X1, X2, X3),
-      angle_X1X2 = sigangle(X1, X2),
-      angle_X1X3 = sigangle(X1, X3),
-      angle_X2X3 = sigangle(X2, X3),
+      axis_angle_X1_X2 = plane_angle(X1, X2),
+      axis_angle_X1_X3 = plane_angle(X1, X3),
+      axis_angle_X2_X3 = plane_angle(X2, X3),
+
+      # Correlations (e.g. acf_X1_lag1, cc_X1_X2_lag1)
+      cors = lagged_cors(pick(everything())),
 
       # Keep track of epoch lengths (some epochs are less than 128 samples)
       n_samples = n()
-    )
+    ) |>
+    unpack(cors)
   return(time_domain_features)
 }

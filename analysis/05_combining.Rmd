@@ -13,71 +13,42 @@ source(here::here("R", "combining.R"))
 ```
 
 ```{r}
-all_filenames_train <- list(
-  "acc" = list.files(train_dir, pattern = "^acc"),
-  "gyro" = list.files(train_dir, pattern = "^gyro")
-)
-all_filenames_test <- list(
-  "acc" = list.files(test_dir, pattern = "^acc"),
-  "gyro" = list.files(test_dir, pattern = "^gyro")
-)
-cat("Number of training files:", length(all_filenames_train[["acc"]]), "acc,", length(all_filenames_train[["gyro"]]), "gyro", "\n")
-cat("Number of test files:", length(all_filenames_test[["acc"]]), "acc,", length(all_filenames_test[["gyro"]]), "gyro")
+all_filenames_train_acc <- list.files(train_dir, pattern = "^acc")
+all_filenames_test_acc <- list.files(test_dir, pattern = "^acc")
+
+cat("Number of training files:", length(all_filenames_train_acc) * 2, "\n")
+cat("Number of test files:", length(all_filenames_test_acc) * 2)
 ```
 
 ```{r}
 n_samples_per_epoch <- 128
 sample_rate <- 50
 
-df_train_acc <- map_dfr(
-  all_filenames_train[["acc"]],
+df_train <- map_dfr(
+  all_filenames_train_acc,
   parse_and_features,
   dir = train_dir,
   sample_labels = sample_labels,
   n_samples_per_epoch = n_samples_per_epoch,
   sample_rate = sample_rate,
-  .progress = "Parsing all acc training files, gathering features"
+  .progress = "Parsing all training files, gathering features"
 )
 
-df_train_gyro <- map_dfr(
-  all_filenames_train[["gyro"]],
-  parse_and_features,
-  dir = train_dir,
-  sample_labels = sample_labels,
-  n_samples_per_epoch = n_samples_per_epoch,
-  sample_rate = sample_rate,
-  .progress = "Parsing all gyro training files, gathering features"
-)
-
-df_train <- df_train_acc |> inner_join(df_train_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples", "aggr_activity", "activity_confidence"))
 head(df_train)
-summary(df_train)
 ```
 
 For predicting on the test set later, we also construct a dataframe for test features.
 
 ```{r}
-df_test_acc <- map_dfr(
-  all_filenames_test[["acc"]],
+df_test <- map_dfr(
+  all_filenames_test_acc,
   parse_and_features,
   dir = test_dir,
   sample_labels = sample_labels,
   n_samples_per_epoch = n_samples_per_epoch,
   sample_rate = sample_rate,
-  .progress = "Parsing all acc test files, gathering features"
+  .progress = "Parsing all testing files, gathering features"
 ) |> select(-aggr_activity, -activity_confidence)
-
-df_test_gyro <- map_dfr(
-  all_filenames_test[["gyro"]],
-  parse_and_features,
-  dir = test_dir,
-  sample_labels = sample_labels,
-  n_samples_per_epoch = n_samples_per_epoch,
-  sample_rate = sample_rate,
-  .progress = "Parsing all gyro test files, gathering features"
-) |> select(-aggr_activity, -activity_confidence)
-
-df_test <- df_test_acc |> inner_join(df_test_gyro, by = c("epoch", "user_id", "exp_id", "sampleid", "n_samples"))
 ```
 
 ## Formatting testing data
@@ -112,14 +83,23 @@ Removing columns unneccessary for fitting.
 df_train <- df_train |> select(-epoch, -sampleid, -user_id, -exp_id)
 ```
 
-Checking if there are any linear combinations within features.
+Checking if there are any linear combinations within features in preprocessed training data.
+
+```{r, fold = "Relevant functions for preprocessing", code = readLines(here::here("R", "preprocess.R"))}
+source(here::here("R", "preprocess.R"))
+```
 
 ```{r}
-df_numeric <- df_train |> select_if(is.numeric)
-linear_combos <- caret::findLinearCombos(df_numeric)
-redundant <- names(df_numeric)[linear_combos$remove]
+pp <- fit_preprocess(df_train)
+df_train_pp <- apply_preprocess(df_train, pp)
+```
+
+```{r}
+redundant <- find_redundant_cols(df_train_pp)
 cat("Number of linear combinations found:", length(redundant), "\n")
-cat("Redundant columns:", paste(redundant, collapse = ", "))
+if (length(redundant) > 0) {
+  cat("Redundant columns:", paste(redundant, collapse = ", "))
+}
 # Remove redundant columns from both training and testing data
 df_train <- df_train |> select(-all_of(redundant))
 df_test <- df_test |> select(-all_of(redundant))

@@ -59,6 +59,23 @@ head(acc_spect_df)
 
 Now we have a tidy data frame with the spectrum of each signal in each epoch.
 
+# Features
+
+<details>
+<summary>Per axis (`*` is `X1`, `X2` or `X3`):</summary>
+
+| Feature | Relevance |
+|---|---|
+| `mean_freq_*`, `sd_freq_*` | average and spread of the frequencies |
+| `skew_freq_*`, `kurt_freq_*` | asymmetry and tailedness of the spectrum |
+| `spec_entropy_*` | how spread out the power is: noise rather than rhythm |
+| `edge_freq_*` | frequency below which 90% of the power lies |
+| `bin1_*` ... `bin8_*` | share of power in each of 8 bins: finer shape of the spectrum |
+| `dom_freq_*` | strongest frequency above 0.5 Hz: the pace of the movement |
+| `dom_power_ratio_*` | share of the power at that frequency: how pure the rhythm is |
+
+</details>
+
 ## Feature extraction
 
 ```{r, fold = "Relevant functions for frequency domain feature extraction", code = readLines(here::here("R", "features_frequency.R"))}

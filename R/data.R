@@ -17,11 +17,6 @@ get_signal_df <- function(exp_id, user_id, signal_data, sample_labels) {
 }
 
 #' Get the file path for a specific sensor type, experiment ID, and user ID
-#' @param dir The directory where the data files are located
-#' @param sensor_type The type of sensor (e.g., "acc", "gyro")
-#' @param exp_id The experiment ID (integer)
-#' @param user_id The user ID (integer)
-#' @return The constructed file path as a string
 get_file_path <- function(dir, sensor_type, exp_id, user_id) {
   # Construct the filename based on the provided parameters
   exp_id_str <- sprintf("%02d", exp_id)
@@ -30,17 +25,13 @@ get_file_path <- function(dir, sensor_type, exp_id, user_id) {
   return(file_path)
 }
 
-#' Load signal data from a file
-#' @param file_path The path to the signal file
-#' @return A data frame containing the signal data
+#' Load signal data from a file into a data frame
 load_signal <- function(file_path) {
   signal_data <- read_delim(file_path, delim = " ", col_names = FALSE, col_types = "ddd", progress = FALSE)
   return(signal_data)
 }
 
-#' Extract parameters from a filename
-#' @param filename The name of the file
-#' @return A list containing the user ID, experiment ID, and sensor type
+#' Extract parameters from a filename: the user ID, experiment ID, and sensor type
 get_file_params <- function(filename) {
   # extract parts of the filename <sensor>_exp<XX>_user<YY>.txt
   user_id <- str_extract(filename, "(?<=user)\\d+") |> as.integer()
