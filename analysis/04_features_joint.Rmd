@@ -17,10 +17,10 @@ describe how the two of them relate.
 
 | Feature | Relevance |
 |---|---|
-| `mean_dot`, `sd_dot` | directional coupling between acceleration and rotation |
+| `mean_dot`, `sd_dot` | how aligned acceleration and rotation are |
 | `gyro_acc_rms_ratio` | rotation- vs translation-dominated movement |
-| `grav_angle_gyro` | angle between the rotation axis and gravity: direction of postural transitions |
-| `cc_<acc>_<gyro>_lag<k>` | cross-correlation between an acc and a gyro channel with the gyro shifted by `k` samples: whether translation and rotation happen together, and which one leads |
+| `grav_angle_gyro` | angle between the rotation axis and gravity: which way a transition goes |
+| `cc_<acc>_<gyro>_lag<k>` | correlation of an acc and a gyro channel, the gyro delayed by `k` = 0, 1, 2 samples (`m1`, `m2` delay the acc instead): do translation and rotation happen together, and which one leads |
 
 </details>
 

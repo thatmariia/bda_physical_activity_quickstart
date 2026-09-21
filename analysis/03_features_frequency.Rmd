@@ -66,13 +66,13 @@ Now we have a tidy data frame with the spectrum of each signal in each epoch.
 
 | Feature | Relevance |
 |---|---|
-| `mean_freq_*`, `sd_freq_*` | average and spread of the frequency of the signal |
-| `skew_freq_*`, `kurt_freq_*` | asymmetry and tailedness of the frequency distribution |
-| `spec_entropy_*` | uncertainty or randomness of the frequency distribution |
+| `mean_freq_*`, `sd_freq_*` | average and spread of the frequencies |
+| `skew_freq_*`, `kurt_freq_*` | asymmetry and tailedness of the spectrum |
+| `spec_entropy_*` | how spread out the power is: noise rather than rhythm |
 | `edge_freq_*` | frequency below which 90% of the power lies |
-| `bin1_*` ... `bin8_*` | share of power in each frequency bin: finer shape of the spectrum |
-| `dom_freq_*` | dominant frequency above 0.5 Hz |
-| `dom_power_ratio_*` | ratio of the dominant frequency power to total power (peak strength) |
+| `bin1_*` ... `bin8_*` | share of power in each of 8 bins: finer shape of the spectrum |
+| `dom_freq_*` | strongest frequency above 0.5 Hz: the pace of the movement |
+| `dom_power_ratio_*` | share of the power at that frequency: how pure the rhythm is |
 
 </details>
 

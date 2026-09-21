@@ -42,25 +42,25 @@ plot_signal_df_hist(gyro_df)
 
 | Feature | Relevance |
 |---|---|
-| `mean_*`, `median_*` | average signal, direction of gravity, median robust to outliers |
-| `sd_*`, `mad_*` | spread of the signal, the second robust to outliers |
+| `mean_*`, `median_*` | average signal; for acc, the direction of gravity |
+| `sd_*`, `mad_*` | spread of the signal, `mad_*` robust to outliers |
 | `min_*`, `max_*` | range of movement |
 | `q05_*`, `q25_*`, `q75_*`, `q95_*` | shape of the distribution |
 | `rms_*` | signal energy |
 | `skew_*` | asymmetry of the distribution |
 | `kurt_*` | tailedness of the distribution |
-| `entropy_*` | uncertainty or randomness of the signal |
-| `mean_abs_diff_*`, `max_abs_diff_*` | how abrupt the changes in the signal are |
-| `jerk_sd_*` | spread of the jerk (rate of change): how abrupt the movement is |
+| `entropy_*` | how unpredictable the signal is |
+| `mean_abs_diff_*`, `max_abs_diff_*` | how abrupt the changes are |
+| `jerk_sd_*` | spread of the rate of change |
 | `slope_*` | steady trend of the signal |
-| `diff_*` | direction of a transition: change from start to end of epoch |
-| `half_mean_diff_*` | change in level from the first to the second half of the epoch |
-| `half_rms_diff_*` | change in movement from the first to the second half of the epoch |
-| `excursion_time_*` | when the largest deviation from the mean occurs (0 = start, 1 = end of epoch) |
-| `peaks_*` | share that is local maxima (how oscillatory the signal is) |
-| `acf_peak_*` | height of the strongest autocorrelation peak: how regular the rhythm is |
-| `acf_peak_lag_*` | lag of that peak in samples: the step period (divide by 50 for seconds) |
-| `ar1_*`, `ar2_*`, `ar3_*`, `ar4_*` | autoregression coefficients (Burg, order 4): temporal structure of the signal |
+| `diff_*` | change from start to end: the direction of a transition |
+| `half_mean_diff_*` | change in level between the two halves of the epoch |
+| `half_rms_diff_*` | change in movement between the two halves |
+| `excursion_time_*` | when the largest deviation happens (0 = start, 1 = end) |
+| `peaks_*` | share of local maxima: how oscillatory the signal is |
+| `acf_peak_*` | strength of the rhythm |
+| `acf_peak_lag_*` | the step period, in samples (divide by 50 for seconds) |
+| `ar1_*`, `ar2_*`, `ar3_*`, `ar4_*` | autoregression coefficients (Burg, order 4) |
 
 For the magnitude (`*_mag`), these describe the overall movement, regardless of how the phone is oriented.
 
@@ -72,10 +72,10 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 | Feature | Relevance |
 |---|---|
 | `zcr_*` | how often the signal crosses its mean |
-| `rot_*` | net integral; for gyro, net rotation angle |
-| `rot_abs_*` | total amount of movement, regardless of direction |
-| `rot_asym_*` | the asymmetry of rotations in each direction |
-| `grav_angle_range_*` | how much the angle with gravity varies within the epoch |
+| `rot_*` | net integral; for gyro, the net rotation angle |
+| `rot_abs_*` | total movement, whatever the direction |
+| `rot_asym_*` | asymmetry between the two directions |
+| `grav_angle_range_*` | how much the tilt varies within the epoch |
 
 </details>
 
@@ -86,7 +86,7 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 |---|---|
 | `var_share_*` | how much of the movement is along this axis |
 | `grav_angle_*` | angle between axis and gravity |
-| `grav_angle_change_*` | change in tilt from start to end of epoch |
+| `grav_angle_change_*` | change in tilt from start to end |
 
 </details>
 
@@ -97,9 +97,9 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 |---|---|
 | `sma` | signal magnitude area |
 | `mean_jerk`, `sd_jerk`, `rms_jerk` | rate of change |
-| `axis_dom` | share of the strongest axis in the overall movement |
-| `diff_orient` | orientation change between start and end of signal |
-| `axis_angle_X1_X2`, `axis_angle_X1_X3`, `axis_angle_X2_X3` | angle of the mean signal in each plane |
+| `axis_dom` | share of the strongest axis |
+| `diff_orient` | change in orientation from start to end |
+| `axis_angle_*` | angle of the mean signal in each plane |
 
 </details>
 
@@ -108,8 +108,8 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 
 | Feature | Relevance |
 |---|---|
-| `acf_*_lag1`, `acf_*_lag2` | correlation of a signal with itself 1 or 2 samples earlier: how smooth it is |
-| `cc_X1_X2_lag1`, `cc_X1_X3_lag1`, `cc_X2_X3_lag1` | correlation of one axis with another 1 sample earlier: whether the axes move together |
+| `acf_*_lag1`, `acf_*_lag2` | correlation with itself 1 or 2 samples earlier: how smooth it is |
+| `cc_X*_X*_lag1` | correlation with another axis 1 sample earlier: do the axes move together |
 
 </details>
 
