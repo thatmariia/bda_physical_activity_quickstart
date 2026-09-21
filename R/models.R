@@ -68,7 +68,12 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
   pp_utils_per_pca <- map(set_names(unique(opts$pca)), \(use_pca) {
     pp <- fit_preprocess(df, pca = use_pca)
     df_pp <- apply_preprocess(df, pp)
-    km <- kmeans(df_pp, centers = k, nstart = nstart)
+    # only compute km if it's in the term options
+    if (any(opts$term == "km_cluster") || any(opts$term == "km_dist")) {
+      km <- kmeans(df_pp, centers = k, nstart = nstart)
+    } else {
+      km <- NULL
+    }
     list(preproc = pp, km = km)
   })
 

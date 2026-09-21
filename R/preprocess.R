@@ -2,6 +2,11 @@
 # == FUNCTIONS FOR DATA PREPROCESSING
 # ==========================================================
 
+#' Get data with features cols only (excluding outcomes and confidence cols)
+df_feat <- function(df) {
+  df |> select(-any_of(c("aggr_activity", "activity_confidence")))
+}
+
 #' Fit a preprocessing pipeline to the data
 #' @param df The input data frame
 #' @param pca The share of the variance the principal components should keep
