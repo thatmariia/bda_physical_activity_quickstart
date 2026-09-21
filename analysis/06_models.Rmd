@@ -73,11 +73,7 @@ source(here::here("R", "models.R"))
 # Set up parallel processing to speed up model fitting
 # ==> START LLM https://chatgpt.com/share/6aab8916-1138-83eb-b17f-1e899eec877c
 library(doParallel)
-n_cores <- parallel::detectCores()
-if (!on_kaggle) {
-  n_cores <- n_cores - 1
-}
-cl <- makePSOCKcluster(n_cores)
+cl <- makePSOCKcluster(n_cores())
 registerDoParallel(cl)
 # ==> END LLM
 
