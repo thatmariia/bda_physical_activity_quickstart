@@ -11,6 +11,10 @@
 #' @param sample_rate The sampling rate of the data.
 #' @return A data frame containing the extracted features.
 parse_and_features <- function(filename_acc, dir, sample_labels, n_samples_per_epoch, sample_rate) {
+  params <- get_file_params(filename_acc)
+  if (on_kaggle) {
+    cat("Parsing user_id:", params$user_id, ", exp_id:", params$exp_id, "\n")
+  }
   # check that filename starts with "acc"
   if (!grepl("^acc", filename_acc)) {
     stop("File must start with 'acc'")
@@ -42,7 +46,6 @@ parse_and_features <- function(filename_acc, dir, sample_labels, n_samples_per_e
   features <- left_join(sensor_features, features_joint, by = "epoch", suffix = c("", "_joint"))
 
   # Add cols for user_id and exp_id from params
-  params <- get_file_params(filename_acc)
   features <- features |> mutate(user_id = params$user_id, exp_id = params$exp_id)
 
   return(features)

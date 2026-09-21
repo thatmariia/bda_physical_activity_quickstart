@@ -24,6 +24,9 @@ cat("Number of test files:", length(all_filenames_test_acc) * 2)
 n_samples_per_epoch <- 128
 sample_rate <- 50
 
+progress_title <- FALSE
+if (!on_kaggle) { progress_title <- "Parsing all training files, gathering features" }
+
 df_train <- map_dfr(
   all_filenames_train_acc,
   parse_and_features,
@@ -31,7 +34,7 @@ df_train <- map_dfr(
   sample_labels = sample_labels,
   n_samples_per_epoch = n_samples_per_epoch,
   sample_rate = sample_rate,
-  .progress = "Parsing all training files, gathering features"
+  .progress = progress_title
 )
 
 head(df_train)
@@ -40,6 +43,8 @@ head(df_train)
 For predicting on the test set later, we also construct a dataframe for test features.
 
 ```{r}
+if (!on_kaggle) { progress_title <- "Parsing all testing files, gathering features" }
+
 df_test <- map_dfr(
   all_filenames_test_acc,
   parse_and_features,
@@ -47,7 +52,7 @@ df_test <- map_dfr(
   sample_labels = sample_labels,
   n_samples_per_epoch = n_samples_per_epoch,
   sample_rate = sample_rate,
-  .progress = "Parsing all test files, gathering features"
+  .progress = progress_title
 ) |> select(-aggr_activity, -activity_confidence)
 ```
 
