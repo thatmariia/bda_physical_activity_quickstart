@@ -43,25 +43,23 @@ plot_signal_df_hist(gyro_df)
 | Feature | Relevance |
 |---|---|
 | `mean_*`, `median_*` | average signal, direction of gravity, median robust to outliers |
-| `sd_*` | spread of the signal |
+| `sd_*`, `mad_*` | spread of the signal, the second robust to outliers |
 | `min_*`, `max_*` | range of movement |
-| `rms_*` | signal energy |
 | `q05_*`, `q25_*`, `q75_*`, `q95_*` | shape of the distribution |
+| `rms_*` | signal energy |
 | `skew_*` | asymmetry of the distribution |
-| `kurtosis_*` | tailedness of the distribution |
-| `ar1_lag1_*`, `ar1_lag2_*` | autocorrelations at lags 1 and 2 of `X1..X3`, `mag`, `dyn_mag`: how smooth the signal is |
+| `kurt_*` | tailedness of the distribution |
+| `entropy_*` | uncertainty or randomness of the signal |
 | `mean_abs_diff_*`, `max_abs_diff_*` | how abrupt the changes in the signal are |
+| `jerk_sd_*` | spread of the jerk (rate of change): how abrupt the movement is |
 | `slope_*` | steady trend of the signal |
 | `diff_*` | direction of a transition: change from start to end of epoch |
-| `peaks_*` | share that is local maxima (how oscillatory the signal is) |
-| `entropy_*` | uncertainty or randomness of the signal |
-| `autocor_peak_*` | height of the strongest autocorrelation peak: how regular the rhythm is |
-| `autocor_peak_lag_*` | lag of that peak in samples: the step period (divide by 50 for seconds) |
-| `excursion_time_*` | when the largest deviation from the mean occurs (0 = start, 1 = end of epoch) |
 | `half_mean_diff_*` | change in level from the first to the second half of the epoch |
 | `half_rms_diff_*` | change in movement from the first to the second half of the epoch |
-| `mad_*` | median absolute deviation: spread of the signal, robust to outliers |
-| `jerk_sd_*` | spread of the jerk (rate of change): how abrupt the movement is |
+| `excursion_time_*` | when the largest deviation from the mean occurs (0 = start, 1 = end of epoch) |
+| `peaks_*` | share that is local maxima (how oscillatory the signal is) |
+| `acf_peak_*` | height of the strongest autocorrelation peak: how regular the rhythm is |
+| `acf_peak_lag_*` | lag of that peak in samples: the step period (divide by 50 for seconds) |
 | `ar1_*`, `ar2_*`, `ar3_*`, `ar4_*` | autoregression coefficients (Burg, order 4): temporal structure of the signal |
 
 For the magnitude (`*_mag`), these describe the overall movement, regardless of how the phone is oriented.
@@ -73,11 +71,11 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 
 | Feature | Relevance |
 |---|---|
+| `zcr_*` | how often the signal crosses its mean |
 | `rot_*` | net integral; for gyro, net rotation angle |
 | `rot_abs_*` | total amount of movement, regardless of direction |
 | `rot_asym_*` | the asymmetry of rotations in each direction |
-| `zcr_*` | how often the signal crosses its mean |
-| `grav_range_*` | how much the angle with gravity varies within the epoch |
+| `grav_angle_range_*` | how much the angle with gravity varies within the epoch |
 
 </details>
 
@@ -86,23 +84,32 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 
 | Feature | Relevance |
 |---|---|
-| `var_rat_*` | how much of the movement is along this axis |
-| `grav_*` | angle between axis and gravity |
-| `grav_change_*` | change in tilt from start to end of epoch |
+| `var_share_*` | how much of the movement is along this axis |
+| `grav_angle_*` | angle between axis and gravity |
+| `grav_angle_change_*` | change in tilt from start to end of epoch |
 
 </details>
 
 <details>
-<summary>Relationships:</summary>
+<summary>All three axes together:</summary>
 
 | Feature | Relevance |
 |---|---|
-| `cc_lag1_X1X2`, `cc_lag1_X1X3`, `cc_lag1_X2X3` | correlation of one axis with another shifted by 1 sample: whether the axes move together |
 | `sma` | signal magnitude area |
 | `mean_jerk`, `sd_jerk`, `rms_jerk` | rate of change |
-| `dom` | share of the strongest axis in the overall movement |
+| `axis_dom` | share of the strongest axis in the overall movement |
 | `diff_orient` | orientation change between start and end of signal |
-| `angle_*` | angle of the mean signal in each plane |
+| `axis_angle_X1_X2`, `axis_angle_X1_X3`, `axis_angle_X2_X3` | angle of the mean signal in each plane |
+
+</details>
+
+<details>
+<summary>Correlations:</summary>
+
+| Feature | Relevance |
+|---|---|
+| `acf_*_lag1`, `acf_*_lag2` | correlation of a signal with itself 1 or 2 samples earlier: how smooth it is |
+| `cc_X1_X2_lag1`, `cc_X1_X3_lag1`, `cc_X2_X3_lag1` | correlation of one axis with another 1 sample earlier: whether the axes move together |
 
 </details>
 
@@ -137,7 +144,7 @@ time_features_gyro |>
 
 This is a tidy data frame that can be used in the classification algorithms discussed in chapters 3 and 4 of ISLR.
 
-***Note**: You may not be familiar with the `AR1.1`, `AR1.2` and `AR12.1` computed above.
+***Note**: You may not be familiar with the `acf_*_lag*` and `cc_*_lag*` features computed above.
 These are called _autocorrelations_ (at lags 1 and 2) and _lagged cross-correlations_.
 They are discussed in [Feature Extraction from Signals](https://paper.dropbox.com/doc/Feature-extraction-from-Signals--A62tmtXDMS34X292NP0fKphQAQ-qCp5uvj47gmyuw5nmB8lL).
 They are interesting because slowly changing signals have high autocorellations, while fast changing signals have low or even negative autocorrelations.*

@@ -62,18 +62,17 @@ Now we have a tidy data frame with the spectrum of each signal in each epoch.
 # Features
 
 <details>
-<summary>Per signal (`*` is `1`, `2` or `3`, for axis `X1`, `X2` or `X3`):</summary>
+<summary>Per axis (`*` is `X1`, `X2` or `X3`):</summary>
 
 | Feature | Relevance |
 |---|---|
-| `dom_freq*` | dominant frequency above 0.5 Hz |
-| `dom_power_ratio*` | ratio of the dominant frequency power to total power (peak strength) |
-| `mean_freq*`, `sd_freq*` | average and spread of the frequency of the signal |
-| `skew_freq*`, `kurt_freq*` | asymmetry and tailedness of the frequency distribution |
-| `entropy*` | uncertainty or randomness of the frequency distribution |
-| `edge_freq*` | frequency below which 90% of the power lies |
+| `mean_freq_*`, `sd_freq_*` | average and spread of the frequency of the signal |
+| `skew_freq_*`, `kurt_freq_*` | asymmetry and tailedness of the frequency distribution |
+| `spec_entropy_*` | uncertainty or randomness of the frequency distribution |
+| `edge_freq_*` | frequency below which 90% of the power lies |
 | `bin1_*` ... `bin8_*` | share of power in each frequency bin: finer shape of the spectrum |
-
+| `dom_freq_*` | dominant frequency above 0.5 Hz |
+| `dom_power_ratio_*` | ratio of the dominant frequency power to total power (peak strength) |
 
 </details>
 

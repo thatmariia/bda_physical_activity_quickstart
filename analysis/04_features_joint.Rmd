@@ -19,7 +19,7 @@ describe how the two of them relate.
 |---|---|
 | `mean_dot`, `sd_dot` | directional coupling between acceleration and rotation |
 | `gyro_acc_rms_ratio` | rotation- vs translation-dominated movement |
-| `gyro_gravity_angle` | angle between the rotation axis and gravity: direction of postural transitions |
+| `grav_angle_gyro` | angle between the rotation axis and gravity: direction of postural transitions |
 | `cc_<acc>_<gyro>_lag<k>` | cross-correlation between an acc and a gyro channel with the gyro shifted by `k` samples: whether translation and rotation happen together, and which one leads |
 
 </details>
