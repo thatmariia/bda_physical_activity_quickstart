@@ -2,20 +2,6 @@
 # == FUNCTIONS FOR TRAINING MODELS
 # ==========================================================
 
-#' Calculate the maximum number of weights for a multinomial model
-get_maxnwts <- function(formula, data, margin = 10) {
-  # ==> START LLM https://chatgpt.com/share/6aade94a-8e00-83ed-bd7d-3192cf67585b
-  mf <- model.frame(formula, data = data)
-  y  <- model.response(mf)
-  x <- model.matrix(formula, data = mf)
-  k = length(unique(y))
-
-  # nnet::multinom internally allocates weights for K output units.
-  # +1 gives a little room beyond the calculated requirement.
-  return(k * (ncol(x) + 1L) + margin)
-  # ==> END LLM
-}
-
 #' Construct a list of specifications for fitting a model
 #' based on provided options
 get_fit_spec <- function(
@@ -56,18 +42,16 @@ get_fit_spec <- function(
 
   # Create extra arguments (uses method)
   extra_args <- switch(method,
-    multinom = list(
-      trace = FALSE,
-      MaxNWts = get_maxnwts(formula, data),
-      tuneGrid = expand.grid(decay = c(0, 1e-4, 1e-3, 1e-2, 0.1)),
-      maxit = 500
+    glmnet = list(
+      # alpha = 0 makes it a ridge penalty
+      tuneGrid = expand.grid(alpha = 0, lambda = 10^seq(-2.5, -0.5, length.out = 9))
     ),
     lda = list(),
     knn = list(
         tuneGrid = expand.grid(k = seq(1, 51, by = 2))
     ),
     naive_bayes = list(
-        tuneGrid = expand.grid(laplace = c(0, 1), usekernel = c(FALSE, TRUE), adjust = c(0.5, 1, 2)
+        tuneGrid = expand.grid(laplace = 0, usekernel = c(FALSE, TRUE), adjust = c(0.5, 1, 2)
     )
     ),
     list()

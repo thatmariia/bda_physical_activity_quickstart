@@ -22,7 +22,7 @@ most_common_value <- function(x) {
 #' @return The confidence of the most common value
 value_confidence <- function(mcval, x) {
   if (mcval == "-") {
-    return(0)
+    return(1)
   }
   counts <- table(x, useNA = "always")
   most_frequent <- which(names(counts) == mcval)
