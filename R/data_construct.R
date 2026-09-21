@@ -2,11 +2,6 @@
 # == FUNCTIONS FOR DATA CONSTRUCTION FOR MODELS
 # ==========================================================
 
-#' Get data with features cols only (excluding outcomes and confidence cols)
-df_feat <- function(df) {
-  df |> select(-any_of(c("aggr_activity", "activity_confidence")))
-}
-
 #' Get a data frame with the k-means distances for each data point
 get_kmeans_dist_df <- function(df, km) {
   dists <- proxy::dist(as.matrix(df), as.matrix(km$centers))
