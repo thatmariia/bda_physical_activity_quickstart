@@ -60,8 +60,19 @@ get_fit_spec <- function(
 
 #' Preprocess and fit a list of models based on the provided data and options
 fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
-  # Define train control with repeated cross-validation
-  trcntr <- caret::trainControl(method = "repeatedcv", number = number, repeats = repeats, verboseIter = FALSE, allowParallel = TRUE)
+  # Define train control with repeated cross-validation, keeping all epochs of
+  # a user in the same fold, since the test data comes from users not seen in training
+  # ==> START LLM https://chatgpt.com/share/6ab0e864-2034-83eb-be85-7968bad11e46
+  folds <- unlist(
+    lapply(seq_len(repeats), function(r) {
+        f <- groupKFold(df$user_id, k = k)
+        names(f) <- paste0("Fold", seq_along(f), ".Rep", r)
+        f
+        }),
+        recursive = FALSE
+  )
+  # ==> END LLM
+  trcntr <- caret::trainControl(method = "cv", index = folds, verboseIter = FALSE, allowParallel = TRUE)
 
   # Construct preprocessing utils, one set per pca option used
   k <- length(unique(df$aggr_activity))
@@ -123,7 +134,7 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
 }
 
 #' Fit all models and return the results
-#' @param df The input data frame
+#' @param df The input data frame (with a user_id column to group the folds by)
 #' @param opts The options for training the models
 #' @param number The number of folds for cross-validation
 #' @param repeats The number of times to repeat the cross-validation

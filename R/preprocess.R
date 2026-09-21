@@ -2,9 +2,9 @@
 # == FUNCTIONS FOR DATA PREPROCESSING
 # ==========================================================
 
-#' Get data with features cols only (excluding outcomes and confidence cols)
+#' Get data with features cols only (excluding outcomes, confidence and user cols)
 df_feat <- function(df) {
-  df |> select(-any_of(c("aggr_activity", "activity_confidence")))
+  df |> select(-any_of(c("aggr_activity", "activity_confidence", "user_id")))
 }
 
 #' Fit a preprocessing pipeline to the data

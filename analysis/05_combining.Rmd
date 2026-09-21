@@ -77,10 +77,10 @@ cat("Number of NA values:", n_na)
 df_train <- df_train |> drop_na()
 ```
 
-Removing columns unneccessary for fitting.
+Removing columns unneccessary for fitting (`user_id` stays to split the cross-validation folds by user).
 
 ```{r}
-df_train <- df_train |> select(-epoch, -sampleid, -user_id, -exp_id)
+df_train <- df_train |> select(-epoch, -sampleid, -exp_id)
 ```
 
 Checking if there are any linear combinations within features in preprocessed training data.
