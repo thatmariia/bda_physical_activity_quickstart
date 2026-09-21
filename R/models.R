@@ -46,7 +46,6 @@ get_fit_spec <- function(
       # alpha = 0 makes it a ridge penalty
       tuneGrid = expand.grid(alpha = 0, lambda = 10^seq(-2.5, -0.5, length.out = 9))
     ),
-    lda = list(),
     knn = list(
         tuneGrid = expand.grid(k = seq(1, 51, by = 2))
     ),
@@ -133,8 +132,7 @@ fit_all <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
 
   results <- data.frame(
     accuracy = sapply(models, \(x) merge(x$results, x$bestTune)$Accuracy),
-    kappa = sapply(models, \(x) merge(x$results, x$bestTune)$Kappa),
-    converged = sapply(models, \(x) x$finalModel$convergence %||% NA_integer_)
+    kappa = sapply(models, \(x) merge(x$results, x$bestTune)$Kappa)
   )
 
   return(list(models = models, results = results, pp_utils = pp_utils))
