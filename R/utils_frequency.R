@@ -42,13 +42,15 @@ convert_signal_to_spectrum_df <- function(signal_df, n_samples_per_epoch = 128, 
   spectrum_df <- signal_df |>
     add_epoch(n_samples_per_epoch) |>
     mutate(position = sampleid %% n_samples_per_epoch) |>
+    mutate(mag = magnitude(X1, X2, X3)) |>
+    mutate(dyn_mag = dynamic_magnitude(X1, X2, X3), .by = epoch) |>
     reframe(
       {
         # ==> START LLM https://chatgpt.com/share/6aab570f-9e38-83ed-a64e-fcd83ae13599
         n_missing <- n_samples_per_epoch - n()
-        x <- cbind(X1, X2, X3)
+        x <- cbind(X1, X2, X3, mag, dyn_mag)
         if (n_missing > 0) {
-          x <- rbind(x, matrix(0, nrow = n_missing, ncol = 3))
+          x <- rbind(x, matrix(0, nrow = n_missing, ncol = ncol(x)))
         }
         # ==> END LLM
 
@@ -56,9 +58,11 @@ convert_signal_to_spectrum_df <- function(signal_df, n_samples_per_epoch = 128, 
         tibble(
           freq = sp$freq, # cycles per sample
           freq_hz = sp$freq * sample_rate, # cycles per second (Hz)
-          spec1 = sp$spec[, 1],
-          spec2 = sp$spec[, 2],
-          spec3 = sp$spec[, 3]
+          spec_X1 = sp$spec[, 1],
+          spec_X2 = sp$spec[, 2],
+          spec_X3 = sp$spec[, 3],
+          spec_mag = sp$spec[, 4],
+          spec_dyn_mag = sp$spec[, 5]
         )
       },
       .by = epoch

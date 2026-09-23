@@ -62,7 +62,7 @@ Now we have a tidy data frame with the spectrum of each signal in each epoch.
 # Features
 
 <details>
-<summary>Per axis (`*` is `X1`, `X2` or `X3`):</summary>
+<summary>Per axis and magnitude (`*` is `X1`, `X2`, `X3` or `mag`, `dyn_mag`):</summary>
 
 | Feature | Relevance |
 |---|---|

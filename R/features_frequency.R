@@ -116,14 +116,14 @@ dominant_power_ratio <- function(freq, spec, sample_rate = 50, min_hz = 0.5) {
 
 #' Extract frequency domain features from a spectrum data frame,
 #' which is assumed to be already segmented into epochs
-#' @param spectrum_df A data frame containing the spectrum data with columns: epoch, freq, spec1, spec2, ...
+#' @param spectrum_df A data frame containing the spectrum data with columns: epoch, freq, spec_X1, spec_X2, ...
 #' @return A data frame containing the extracted frequency domain features for each epoch
 get_frequency_domain_features <- function(spectrum_df) {
   frequency_domain_features <- spectrum_df |>
     group_by(epoch) |>
     summarise(
       across(
-        c(spec1, spec2, spec3),
+        starts_with("spec_"),
         list(
           # shape of the spectrum
           mean_freq = \(s) mean_frequency(freq, s),
@@ -144,7 +144,7 @@ get_frequency_domain_features <- function(spectrum_df) {
           dom_freq = \(s) dominant_frequency(freq, s),
           dom_power_ratio = \(s) dominant_power_ratio(freq, s)
         ),
-        .names = "{.fn}_X{sub('spec', '', .col)}"
+        .names = "{.fn}_{sub('spec_', '', .col)}"
       )
     )
   return(frequency_domain_features)
