@@ -3,6 +3,7 @@ library(caret, warn.conflicts = FALSE)
 options(width = 100)
 
 on_kaggle <- dir.exists("/kaggle/input")
+final_submission <- FALSE
 data_dir <- if (on_kaggle) {
   list.files("/kaggle/input/competitions", full.names = TRUE)[1]
 } else {

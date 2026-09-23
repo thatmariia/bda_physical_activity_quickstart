@@ -71,7 +71,7 @@ source(here::here("R", "models.R"))
 ```
 
 ```{r}
-if (!on_kaggle) {
+if (!(on_kaggle && final_submission)) {
   # Set up parallel processing to speed up model fitting
   # ==> START LLM https://chatgpt.com/share/6aab8916-1138-83eb-b17f-1e899eec877c
   library(doParallel)
@@ -84,7 +84,7 @@ if (!on_kaggle) {
 fitted_models <- suppressWarnings(fit_all(df_train, opts, number = 10, repeats = 5, nstart = 10))
 fitted_models$results
 
-if (!on_kaggle) {
+if (!(on_kaggle && final_submission)) {
   # Clean up parallel processing
   stopCluster(cl)
   registerDoSEQ()
