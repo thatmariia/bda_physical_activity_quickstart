@@ -3,10 +3,12 @@ source(here::here("setup.R"))
 for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
 ```
 
-> *Small disclaimer:* we use additional packages, i.e., `future` and `doParallel`.
-> Their only purpose is to use parallel processing to speed up computations.
+> *Small disclaimer:* the additional packages, i.e., `future` and `doParallel`,
+> are only used on local runs, they are disabled when the notebook is run on kaggle
+> to comply with the competition rules.
+> The only purpose of the packages is to use parallel processing to speed up computations.
 > The actual functions and their results are same as if they were sequential.
-> We also use the package `progressr` to show progress bars when extracting features,
+> We also use the package `progressr` locally to show progress bars when extracting features,
 > which helps to monitor the progress.
 
 # Reading the data

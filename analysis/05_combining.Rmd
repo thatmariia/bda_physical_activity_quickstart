@@ -24,16 +24,22 @@ cat("Number of test files:", length(all_filenames_test_acc) * 2)
 n_samples_per_epoch <- 128
 sample_rate <- 50
 
-future::plan(future::multisession, workers = n_cores())
-
-progressr::with_progress({
-  p <- progressr::progressor(along = all_filenames_train_acc)
-  df_train <- furrr::future_map_dfr(all_filenames_train_acc, \(filename) {
-    features <- parse_and_features(filename, train_dir, sample_labels, n_samples_per_epoch, sample_rate)
-    p()
-    features
+if (on_kaggle) {
+  df_train <- map_dfr(all_filenames_train_acc, \(filename) {
+    parse_and_features(filename, train_dir, sample_labels, n_samples_per_epoch, sample_rate)
   })
-})
+} else {
+  future::plan(future::multisession, workers = n_cores())
+
+  progressr::with_progress({
+    p <- progressr::progressor(along = all_filenames_train_acc)
+    df_train <- furrr::future_map_dfr(all_filenames_train_acc, \(filename) {
+      features <- parse_and_features(filename, train_dir, sample_labels, n_samples_per_epoch, sample_rate)
+      p()
+      features
+    })
+  })
+}
 
 head(df_train)
 ```
@@ -41,14 +47,22 @@ head(df_train)
 For predicting on the test set later, we also construct a dataframe for test features.
 
 ```{r}
-progressr::with_progress({
-  p <- progressr::progressor(along = all_filenames_test_acc)
-  df_test <- furrr::future_map_dfr(all_filenames_test_acc, \(filename) {
-    features <- parse_and_features(filename, test_dir, sample_labels, n_samples_per_epoch, sample_rate)
-    p()
-    features
+
+if (on_kaggle) {
+  df_test <- map_dfr(all_filenames_test_acc, \(filename) {
+    parse_and_features(filename, test_dir, sample_labels, n_samples_per_epoch, sample_rate)
   })
-})
+} else {
+  progressr::with_progress({
+    p <- progressr::progressor(along = all_filenames_test_acc)
+    df_test <- furrr::future_map_dfr(all_filenames_test_acc, \(filename) {
+      features <- parse_and_features(filename, test_dir, sample_labels, n_samples_per_epoch, sample_rate)
+      p()
+      features
+    })
+  })
+}
+
 df_test <- df_test |> select(-aggr_activity, -activity_confidence)
 
 future::plan(future::sequential)

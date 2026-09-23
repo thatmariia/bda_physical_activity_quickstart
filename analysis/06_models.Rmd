@@ -71,20 +71,24 @@ source(here::here("R", "models.R"))
 ```
 
 ```{r}
-# Set up parallel processing to speed up model fitting
-# ==> START LLM https://chatgpt.com/share/6aab8916-1138-83eb-b17f-1e899eec877c
-library(doParallel)
-cl <- makePSOCKcluster(n_cores())
-registerDoParallel(cl)
-# ==> END LLM
+if (!on_kaggle) {
+  # Set up parallel processing to speed up model fitting
+  # ==> START LLM https://chatgpt.com/share/6aab8916-1138-83eb-b17f-1e899eec877c
+  library(doParallel)
+  cl <- makePSOCKcluster(n_cores())
+  registerDoParallel(cl)
+  # ==> END LLM
+}
 
 # Fit models
 fitted_models <- suppressWarnings(fit_all(df_train, opts, number = 10, repeats = 5, nstart = 10))
 fitted_models$results
 
-# Clean up parallel processing
-stopCluster(cl)
-registerDoSEQ()
+if (!on_kaggle) {
+  # Clean up parallel processing
+  stopCluster(cl)
+  registerDoSEQ()
+}
 ```
 
 Finding the best model (based on accuracy).
