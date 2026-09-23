@@ -70,9 +70,15 @@ df_test <- df_test |> select(-epoch)
 cat("Number of rows in test data:", nrow(df_test))
 ```
 
-## Cleaning training data
+## Cleaning data
 
-Removing rows with NA values.
+Removing columns unneccessary for fitting (`user_id` stays to split the cross-validation folds by user).
+
+```{r}
+df_train <- df_train |> select(-epoch, -sampleid, -exp_id)
+```
+
+Removing rows with NA values from training.
 
 ```{r}
 n_na <- sum(is.na(df_train))
@@ -80,10 +86,10 @@ cat("Number of NA values:", n_na)
 df_train <- df_train |> drop_na()
 ```
 
-Removing columns unneccessary for fitting (`user_id` stays to split the cross-validation folds by user).
+Removing rows with invalid activities.
 
 ```{r}
-df_train <- df_train |> select(-epoch, -sampleid, -exp_id)
+df_train <- df_train |> filter(aggr_activity != "-")
 ```
 
 Checking if there are any linear combinations within features in preprocessed training data.
