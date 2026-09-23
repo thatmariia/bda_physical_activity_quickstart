@@ -35,6 +35,8 @@ cross_lag_pairs <- function() {
 #' @param n_samples_per_epoch The number of samples per epoch (default is 128, corresponding to 2.56 seconds at 50 Hz)
 #' @return A data frame with one row per epoch
 get_joint_features <- function(joint_df, n_samples_per_epoch = 128) {
+  lag_pairs <- cross_lag_pairs()
+
   joint_features <- joint_df |>
     add_epoch(n_samples_per_epoch) |>
     group_by(epoch) |>
@@ -53,7 +55,7 @@ get_joint_features <- function(joint_df, n_samples_per_epoch = 128) {
         mean_vector(acc_X1, acc_X2, acc_X3)
       ),
       # Correlations (e.g. cc_acc_X1_gyro_X1_lag0)
-      cors = lagged_cors(pick(everything()), cross_lag_pairs()),
+      cors = lagged_cors(pick(everything()), lag_pairs),
       .groups = "drop"
     ) |>
     unpack(cors)

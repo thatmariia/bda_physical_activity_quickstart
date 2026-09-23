@@ -77,9 +77,9 @@ slope <- function(x) {
   if (length(x) < 2) {
     return(0)
   }
-  # Compute the slope using linear regression
-  fit <- lm(x ~ seq_along(x))
-  return(coef(fit)[2])
+  # Compute the slope of the regression line on the sample positions
+  positions <- seq_along(x)
+  return(cov(x, positions) / var(positions))
 }
 
 #' Compute the difference between the means of the last and first k share of a signal
@@ -145,41 +145,44 @@ autocorrelations <- function(x, max_lag = 64) {
   return(drop(acf(x, lag.max = max_lag, plot = FALSE)$acf)[-1])
 }
 
-#' Find the lag of the strongest autocorrelation peak of a signal
+#' Find the lag of the strongest autocorrelation peak, and its height
 #' (from copilot assignment)
-acf_peak_lag <- function(x, min_lag = 5, max_lag = 64) {
-  r <- autocorrelations(x, max_lag)
+acf_peak <- function(r, min_lag = 5) {
   if (length(r) < min_lag + 1) {
-    return(0)
+    return(c(0, 0))
   }
   # Local maxima of the autocorrelation, ignoring very short lags
   lags <- seq(min_lag, length(r) - 1)
   is_peak <- r[lags] > r[lags - 1] & r[lags] >= r[lags + 1]
   if (!any(is_peak)) {
-    return(0)
+    return(c(0, 0))
   }
   peak_lags <- lags[is_peak]
-  return(peak_lags[which.max(r[peak_lags])])
+  lag <- peak_lags[which.max(r[peak_lags])]
+  return(c(r[lag], lag))
 }
 
-#' Compute the height of the strongest autocorrelation peak of a signal
-#' (from copilot assignment)
-acf_peak <- function(x, min_lag = 5, max_lag = 64) {
-  lag <- acf_peak_lag(x, min_lag, max_lag)
-  if (lag == 0) {
-    return(0)
-  }
-  return(autocorrelations(x, max_lag)[lag])
-}
-
-#' Compute one autoregression coefficient of a signal (Burg method)
+#' Compute the autoregression coefficients of a signal (Burg method)
 #' (from Reyes-Ortiz et al., 2015)
-ar_coefficient <- function(x, k, order = 4) {
+ar_coefficients <- function(x, order = 4) {
   if (length(x) <= 2 * order || sd(x) == 0) {
-    return(0)
+    return(rep(0, order))
   }
   fit <- ar.burg(x, aic = FALSE, order.max = order, demean = TRUE)
-  return(fit$ar[k])
+  return(fit$ar)
+}
+
+#' Compute the autoregression coefficients and the strongest autocorrelation peak of
+#' each signal, as a one-row data frame (e.g. ar1_X1, acf_peak_X1, acf_peak_lag_X1).
+rhythm_features <- function(signals, order = 4, min_lag = 5, max_lag = 64) {
+  values <- imap(signals, \(x, signal) {
+    peak <- acf_peak(autocorrelations(x, max_lag), min_lag)
+    set_names(
+      c(ar_coefficients(x, order), peak),
+      paste0(c(paste0("ar", seq_len(order)), "acf_peak", "acf_peak_lag"), "_", signal)
+    )
+  })
+  as_tibble_row(unlist(unname(values)))
 }
 
 # ----------------------------------------------------------
@@ -348,6 +351,8 @@ lagged_cors <- function(signals, pairs = time_lag_pairs()) {
 #' @param sample_rate The sample rate of the signal (default is 50 Hz)
 #' @return A data frame containing the extracted time domain features for each epoch
 get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sample_rate = 50) {
+  lag_pairs <- time_lag_pairs()
+
   time_domain_features <- signal_df |>
     # partition into epochs and add the magnitude of the signal
     add_epoch(n_samples_per_epoch) |>
@@ -394,13 +399,7 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
           half_rms_diff = \(x) spread_diff_start_end(x, k = 0.5),
           excursion_time = excursion_time,
           # rhythm
-          peaks = peak_rate,
-          acf_peak = acf_peak,
-          acf_peak_lag = acf_peak_lag,
-          ar1 = \(x) ar_coefficient(x, 1),
-          ar2 = \(x) ar_coefficient(x, 2),
-          ar3 = \(x) ar_coefficient(x, 3),
-          ar4 = \(x) ar_coefficient(x, 4)
+          peaks = peak_rate
         ),
         .names = "{.fn}_{.col}"
       ),
@@ -440,12 +439,15 @@ get_time_domain_features <- function(signal_df, n_samples_per_epoch = 128, sampl
       axis_angle_X1_X3 = plane_angle(X1, X3),
       axis_angle_X2_X3 = plane_angle(X2, X3),
 
+      # Autoregression coefficients and autocorrelation peaks (e.g. ar1_X1, acf_peak_X1)
+      rhythm = rhythm_features(list(X1 = X1, X2 = X2, X3 = X3, mag = mag, dyn_mag = dyn_mag)),
+
       # Correlations (e.g. acf_X1_lag1, cc_X1_X2_lag1)
-      cors = lagged_cors(pick(everything())),
+      cors = lagged_cors(pick(everything()), lag_pairs),
 
       # Keep track of epoch lengths (some epochs are less than 128 samples)
       n_samples = n()
     ) |>
-    unpack(cors)
+    unpack(c(rhythm, cors))
   return(time_domain_features)
 }
