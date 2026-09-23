@@ -103,7 +103,7 @@ df_train <- df_train |> drop_na()
 Removing rows with invalid activities.
 
 ```{r}
-df_train <- df_train |> filter(aggr_activity != "-")
+# df_train <- df_train |> filter(aggr_activity != "-")
 ```
 
 Checking if there are any linear combinations within features in preprocessed training data.

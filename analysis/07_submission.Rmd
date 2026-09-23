@@ -22,7 +22,9 @@ To help you turning your predictions into the right format, the following code c
 ```{r}
 df_test_predicted <- df_test |>
   mutate(Predicted = predictions) |>
-  select(Id, Predicted)
+  select(Id, Predicted) # |>
+  # remove predictions of "-"
+  # filter(Predicted != "-")
 write_csv(df_test_predicted, file.path(output_dir, "submission.csv"))
 
 # Check the result: print first 20 lines in the submission file
