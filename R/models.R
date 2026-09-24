@@ -158,3 +158,41 @@ fit_all <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
 
   return(list(models = models, results = results, pp_utils = pp_utils))
 }
+
+#' Tabulate what varied while each model was trained: the values of its tuning
+#' parameters, or the folds themselves for a method with nothing to tune
+#' @param models A named list of models fitted with `caret::train()`
+#' @return A data frame with one row per model and value
+training_table <- function(models) {
+  imap_dfr(models, \(fit, key) {
+    parameters <- fit$modelInfo$parameters$parameter
+    tuned <- parameters[map_lgl(parameters, \(p) n_distinct(fit$results[[p]]) > 1)]
+
+    if (length(tuned) == 0) {
+      return(tibble(
+        key = key, parameter = "fold", setting = "none",
+        value = seq_len(nrow(fit$resample)),
+        accuracy = fit$resample$Accuracy, accuracy_sd = NA_real_
+      ))
+    }
+
+    # the parameter with the most values goes on the x axis, the others tell the lines apart
+    x_parameter <- tuned[which.max(map_int(tuned, \(p) n_distinct(fit$results[[p]])))]
+    others <- setdiff(tuned, x_parameter)
+    settings <- if (length(others) == 0) {
+      "none"
+    } else {
+      fit$results |> select(all_of(others)) |> imap(\(x, name) paste0(name, "=", x)) |> pmap_chr(paste)
+    }
+    value <- as.numeric(fit$results[[x_parameter]])
+
+    tibble(
+      key = key,
+      # the penalty is tuned on a log scale
+      parameter = if (x_parameter == "lambda") "log10(lambda)" else x_parameter,
+      setting = settings,
+      value = if (x_parameter == "lambda") log10(value) else value,
+      accuracy = fit$results$Accuracy, accuracy_sd = fit$results$AccuracySD
+    )
+  })
+}

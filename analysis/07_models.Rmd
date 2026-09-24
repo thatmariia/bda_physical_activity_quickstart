@@ -109,21 +109,42 @@ cat("Best model:", best_fit$key, "\n")
 Visualizing results of different models to see how the "best" model compares to the rest.
 
 ```{r}
-ggplot(fitted_models$results, aes(x = accuracy, y = kappa)) +
-  geom_point(data = fitted_models$results[best_fit$key, ], size = 5) +
-  geom_point(aes(color = rownames(fitted_models$results)))
-```
-
-```{r}
 # Extract the fold statistics for each model
-# rs <- resamples(fitted_models$models)
+rs <- resamples(fitted_models$models)
 # box-and-whisker plot for the performance distribution
-# bwplot(rs)
+bwplot(rs)
 ```
 
 ```{r}
 # Compute the table of pairwise comparisons
-# summary(diff(rs))
+summary(diff(rs))
+```
+
+How each model was trained (tuning curves where relevant, spread over folds otherwise).
+
+```{r}
+#' Plot how every model was trained
+plot_training <- function(models) {
+  table <- training_table(models)
+
+  # the folds have no order, so only the tuning curves are connected
+  tuning <- filter(table, parameter != "fold")
+  curves <- if (nrow(tuning) > 0) geom_line(data = tuning) else NULL
+
+  ggplot(table, aes(value, accuracy, colour = setting)) +
+    geom_errorbar(aes(ymin = accuracy - accuracy_sd, ymax = accuracy + accuracy_sd), width = 0) +
+    curves +
+    geom_point() +
+    # the strips sit under the axis, so each panel names its own parameter there
+    facet_wrap(~ paste0(key, "\n", parameter),
+      scales = "free_x", strip.position = "bottom", labeller = label_wrap_gen(40)
+    ) +
+    guides(colour = if (all(table$setting == "none")) "none" else "legend") +
+    theme(strip.placement = "outside", strip.background = element_blank()) +
+    labs(x = NULL, y = "Cross-validated accuracy")
+}
+
+plot_training(fitted_models$models)
 ```
 
 ```{r, include = FALSE}
