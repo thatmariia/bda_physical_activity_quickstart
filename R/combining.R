@@ -34,6 +34,7 @@ parse_and_features <- function(filename_acc, dir, sample_labels, n_samples_per_e
   features_time_gyro <- get_time_domain_features(df_gyro, n_samples_per_epoch, sample_rate)
   features_freq_gyro <- get_frequency_domain_features(df_freq_gyro)
   features_joint <- get_joint_features(joint_df, n_samples_per_epoch)
+  features_gravity <- get_gravity_features(joint_df, n_samples_per_epoch, sample_rate)
 
   # Keep the epoch information from the accelerometer only
   epoch_info <- c("sampleid", "n_samples", "aggr_activity", "activity_confidence")
@@ -42,8 +43,9 @@ parse_and_features <- function(filename_acc, dir, sample_labels, n_samples_per_e
   # Left join all the features
   time_features <- left_join(features_time_acc, features_time_gyro, by = "epoch", suffix = c("_acc", "_gyro"))
   freq_features <- left_join(features_freq_acc, features_freq_gyro, by = "epoch", suffix = c("_acc", "_gyro"))
-  sensor_features <- left_join(time_features, freq_features, by = "epoch", suffix = c("_time", "_freq"))
-  features <- left_join(sensor_features, features_joint, by = "epoch", suffix = c("", "_joint"))
+  features <- left_join(time_features, freq_features, by = "epoch", suffix = c("_time", "_freq"))
+  features <- left_join(features, features_joint, by = "epoch", suffix = c("", "_joint"))
+  features <- left_join(features, features_gravity, by = "epoch", suffix = c("", "_grav"))
 
   # Add cols for user_id and exp_id from params
   params <- get_file_params(filename_acc)

@@ -7,7 +7,7 @@ gyro_df <- readRDS(file.path(output_dir, "gyro_df.rds"))
 
 # Time domain features
 
-## Histograms
+## Visualization
 
 Histograms give a detailed picture of the distribution of the signal values.
 For instance, have a look at the histograms of the signal samples per activity:
@@ -32,13 +32,13 @@ plot_signal_df_hist(acc_df)
 plot_signal_df_hist(gyro_df)
 ```
 
-**The histograms for different activities look quite distinct.** This means that statistical summaries
+The histograms for different activities look quite distinct. This means that statistical summaries
 (mean, standard deviation, skewness, etc.) could help us tell the activities apart.
 
 ## Features
 
 <details>
-<summary>Per axis and magnitude (`*` is `X1`, `X2`, `X3` or `mag`, `dyn_mag`):</summary>
+<summary>Per axis and magnitude (`*` is `X1`, `X2`, `X3` or `mag`, `dyn_mag`) - *click to expand*</summary>
 
 | Feature | Relevance |
 |---|---|
@@ -67,7 +67,7 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 </details>
 
 <details>
-<summary>Per axis only (`*` is `X1`, `X2` or `X3`):</summary>
+<summary>Per axis only (`*` is `X1`, `X2` or `X3`) - *click to expand*</summary>
 
 | Feature | Relevance |
 |---|---|
@@ -80,7 +80,7 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 </details>
 
 <details>
-<summary>Axis compared with the other two (`*` is `X1`, `X2` or `X3`):</summary>
+<summary>Axis compared with the other two (`*` is `X1`, `X2` or `X3`) - *click to expand*</summary>
 
 | Feature | Relevance |
 |---|---|
@@ -91,7 +91,7 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 </details>
 
 <details>
-<summary>All three axes together:</summary>
+<summary>All three axes together - *click to expand*</summary>
 
 | Feature | Relevance |
 |---|---|
@@ -104,7 +104,7 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 </details>
 
 <details>
-<summary>Correlations:</summary>
+<summary>Correlations - *click to expand*</summary>
 
 | Feature | Relevance |
 |---|---|
@@ -117,6 +117,10 @@ For the magnitude (`*_mag`), these describe the overall movement, regardless of 
 
 ```{r, fold = "Relevant functions for segmentation of activities", code = readLines(here::here("R", "segmentation.R"))}
 source(here::here("R", "segmentation.R"))
+```
+
+```{r, fold = "Relevant functions for describing a signal", code = readLines(here::here("R", "utils_time.R"))}
+source(here::here("R", "utils_time.R"))
 ```
 
 ```{r, fold = "Relevant functions for time domain feature extraction", code = readLines(here::here("R", "features_time.R"))}
@@ -141,13 +145,6 @@ time_features_gyro |>
   theme(axis.text.x = element_blank()) +
   labs(x = "Activity label", y = "Confidence of activity label")
 ```
-
-This is a tidy data frame that can be used in the classification algorithms discussed in chapters 3 and 4 of ISLR.
-
-***Note**: You may not be familiar with the `acf_*_lag*` and `cc_*_lag*` features computed above.
-These are called _autocorrelations_ (at lags 1 and 2) and _lagged cross-correlations_.
-They are discussed in [Feature Extraction from Signals](https://paper.dropbox.com/doc/Feature-extraction-from-Signals--A62tmtXDMS34X292NP0fKphQAQ-qCp5uvj47gmyuw5nmB8lL).
-They are interesting because slowly changing signals have high autocorellations, while fast changing signals have low or even negative autocorrelations.*
 
 ```{r, include = FALSE}
 saveRDS(time_features_acc, file.path(output_dir, "time_features_acc.rds"))

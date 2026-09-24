@@ -7,13 +7,13 @@ gyro_df <- readRDS(file.path(output_dir, "gyro_df.rds"))
 
 # Frequency domain features
 
-## Spectrograms
+## Visualization
 
 As we looked at histograms of the signal values, we can also look at the spectragrams of the signals.
 The spectrum is a representation of the signal in the frequency domain, which can reveal periodic patterns that are not obvious in the time domain.
 
-```{r, fold = "Relevant functions for frequency domain analysis", code = readLines(here::here("R", "utils_frequency.R"))}
-source(here::here("R", "utils_frequency.R"))
+```{r, fold = "Relevant functions for frequency domain analysis", code = readLines(here::here("R", "analysis_frequency.R"))}
+source(here::here("R", "analysis_frequency.R"))
 ```
 
 ```{r}
@@ -62,7 +62,7 @@ Now we have a tidy data frame with the spectrum of each signal in each epoch.
 # Features
 
 <details>
-<summary>Per axis and magnitude (`*` is `X1`, `X2`, `X3` or `mag`, `dyn_mag`):</summary>
+<summary>Per axis and magnitude (`*` is `X1`, `X2`, `X3` or `mag`, `dyn_mag`) - *click to expand*</summary>
 
 | Feature | Relevance |
 |---|---|
@@ -77,6 +77,10 @@ Now we have a tidy data frame with the spectrum of each signal in each epoch.
 </details>
 
 ## Feature extraction
+
+```{r, fold = "Relevant functions for frequency domain features", code = readLines(here::here("R", "utils_frequency.R"))}
+source(here::here("R", "utils_frequency.R"))
+```
 
 ```{r, fold = "Relevant functions for frequency domain feature extraction", code = readLines(here::here("R", "features_frequency.R"))}
 source(here::here("R", "features_frequency.R"))

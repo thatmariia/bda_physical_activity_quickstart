@@ -13,7 +13,7 @@ describe how the two of them relate.
 ## Features
 
 <details>
-<summary>Joint features:</summary>
+<summary>Joint features - *click to expand*</summary>
 
 | Feature | Relevance |
 |---|---|

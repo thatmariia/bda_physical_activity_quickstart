@@ -1,0 +1,93 @@
+```{r, include = FALSE}
+source(here::here("setup.R"))
+for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
+acc_df <- readRDS(file.path(output_dir, "acc_df.rds"))
+gyro_df <- readRDS(file.path(output_dir, "gyro_df.rds"))
+```
+
+# Gravity frame features
+
+The position and orientation of the phone is different per user and activity.
+Gravity features describe the movement of the phone relative to the direction of gravity
+(dominant axis), so the features are more user-agnostic.
+
+## Visualization
+
+The scatter plot shows the relationship between the vertical and horizontal components of the acceleration.
+
+```{r, fold = "Relevant functions for gravity frame and features", code = readLines(here::here("R", "utils_gravity.R"))}
+source(here::here("R", "utils_gravity.R"))
+```
+
+```{r}
+plot_grav_df_scatter <- function(x, col1, col2) {
+  x |>
+    bind_cols(activity = acc_df$activity) |>
+    filter(!is.na(activity)) |>
+    ggplot(aes(.data[[col1]], .data[[col2]])) +
+    geom_point(alpha = 0.1, size = 0.5) +
+    facet_wrap(~activity) +
+    labs(x = col1, y = col2)
+}
+
+grav_df <- gravity_frame(join_sensors(acc_df, gyro_df))
+
+plot_grav_df_scatter(grav_df, "vert", "horiz")
+```
+
+```{r}
+plot_grav_df_scatter(grav_df, "yaw", "tilt")
+```
+
+
+## Channels
+
+| Channel | Meaning |
+|---|---|
+| `vert` | acceleration along gravity (vertical) |
+| `horiz` | acceleration in the horizontal plane |
+| `yaw` | rotation around the gravity axis |
+| `tilt` | rotation around a horizontal axis |
+
+## Features
+
+<details>
+<summary>Per channel (`*` is `vert`, `horiz`, `yaw` or `tilt`):</summary>
+
+| Feature | Relevance |
+|---|---|
+| `mean_*`, `median_*`, `sd_*`, `mad_*`, `min_*`, `max_*`, `q05_*`, `q25_*`, `q75_*`, `q95_*`, `rms_*` | size and spread of the movement |
+| `skew_*`, `kurt_*`, `entropy_*` | shape of the distribution |
+| `mean_abs_diff_*`, `max_abs_diff_*`, `jerk_sd_*` | how abrupt the changes are |
+| `slope_*`, `diff_*`, `half_mean_diff_*`, `half_rms_diff_*`, `excursion_time_*` | how the movement develops over the epoch |
+| `peaks_*`, `zcr_*`, `acf_peak_*`, `acf_peak_lag_*`, `ar1_*` ... `ar4_*` | rhythm of the movement |
+| `rot_*`, `rot_abs_*`, `rot_asym_*` | total movement, and how one-sided it is; on `yaw` this is the net turn |
+| `mean_freq_*`, `sd_freq_*`, `skew_freq_*`, `kurt_freq_*`, `spec_entropy_*`, `edge_freq_*`, `bin1_*` ... `bin8_*`, `dom_freq_*`, `dom_power_ratio_*` | the same spectrum features as for the phone axes |
+
+</details>
+
+<details>
+<summary>Between the channels - *click to expand*</summary>
+
+| Feature | Relevance |
+|---|---|
+| `var_share_vert` | how much of the acceleration is vertical |
+| `var_share_yaw` | how much of the rotation is turning rather than tipping |
+| `dom_acc`, `dom_rot` | how one-sided that split is |
+| `sma_acc`, `sma_rot` | overall effort per sensor |
+| `mean_jerk_acc`, `sd_jerk_acc`, `rms_jerk_acc`, and the same for `_rot` | rate of change across the channels |
+| `cc_<a>_<b>_lag<k>` | correlation of two channels, the second delayed by `k` = 0, 1, 2 samples |
+
+</details>
+
+## Feature extraction
+
+```{r, fold = "Relevant functions for gravity frame feature extraction", code = readLines(here::here("R", "features_gravity.R"))}
+source(here::here("R", "features_gravity.R"))
+```
+
+```{r}
+# Compute the gravity frame features per epoch of the example recording
+gravity_features <- get_gravity_features(join_sensors(acc_df, gyro_df))
+head(gravity_features)
+```

@@ -47,7 +47,6 @@ head(df_train)
 For predicting on the test set later, we also construct a dataframe for test features.
 
 ```{r}
-
 if (on_kaggle && final_submission) {
   df_test <- map_dfr(all_filenames_test_acc, \(filename) {
     parse_and_features(filename, test_dir, sample_labels, n_samples_per_epoch, sample_rate)

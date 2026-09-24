@@ -31,10 +31,10 @@ We do not include the following options:
 # Define the options for model training
 # only use a subset now to save time
 opts <- expand_grid(
-  method = c("glmnet", "lda"), # "qda", "knn", "naive_bayes"
+  method = c("glmnet"), # "qda", "knn", "naive_bayes"
   term_mode = c("nomode"), # + "add", "inter"
   term = c("noterm"), # + "km_cluster", "km_dist"
-  weighting = c("unweighted", "weighted"),
+  weighting = c("unweighted"),
   pca = c(1, 0.95, 0.7),
   corr = c("corr", "nocorr")
 ) |>
@@ -116,14 +116,14 @@ ggplot(fitted_models$results, aes(x = accuracy, y = kappa)) +
 
 ```{r}
 # Extract the fold statistics for each model
-rs <- resamples(fitted_models$models)
+# rs <- resamples(fitted_models$models)
 # box-and-whisker plot for the performance distribution
-bwplot(rs)
+# bwplot(rs)
 ```
 
 ```{r}
 # Compute the table of pairwise comparisons
-summary(diff(rs))
+# summary(diff(rs))
 ```
 
 ```{r, include = FALSE}
