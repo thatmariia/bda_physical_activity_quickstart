@@ -25,9 +25,8 @@ We do not include the following options:
 
 ```{r}
 # Define the options for model training
-# only use a subset now to save time
 opts <- expand_grid(
-  method = c("glmnet"), # "lda", "qda", "knn", "naive_bayes"
+  method = c("qda", "naive_bayes", "knn", "lda", "glmnet"),
   weighting = c("unweighted"),
   pca = c(1, 0.95, 0.6),
   corr = c("corr", "nocorr")
@@ -63,7 +62,7 @@ if (!(on_kaggle && final_submission)) {
 }
 
 # Fit models
-fitted_models <- suppressWarnings(fit_all(df_train, opts, number = 10, repeats = 5))
+fitted_models <- suppressWarnings(fit_all(df_train, opts, number = 12, repeats = 2))
 fitted_models$results
 
 if (!(on_kaggle && final_submission)) {
@@ -90,15 +89,15 @@ cat("Best model:", best_fit$key, "\n")
 Visualizing results of different models to see how the "best" model compares to the rest.
 
 ```{r}
-# Extract the fold statistics for each model
-rs <- resamples(fitted_models$models)
-# box-and-whisker plot for the performance distribution
-bwplot(rs)
-```
-
-```{r}
-# Compute the table of pairwise comparisons
+# if more than 1 model
+if (length(fitted_models$models) > 1) {
+  # Extract the fold statistics for each model
+  rs <- resamples(fitted_models$models)
+  # box-and-whisker plot for the performance distribution
+  bwplot(rs)
+  # Compute the table of pairwise comparisons
 summary(diff(rs))
+}
 ```
 
 How each model was trained (tuning curves where relevant, spread over folds otherwise).
