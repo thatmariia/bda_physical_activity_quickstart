@@ -7,13 +7,12 @@ df_feat <- function(df) {
   df |> select(-any_of(c("aggr_activity", "activity_confidence", "user_id")))
 }
 
-#' Fit a preprocessing pipeline to the data
-#' @param df The input data frame
+#' The preprocessing steps applied to the features
 #' @param pca The share of the variance the principal components should keep
 #'   (1 = keep the features themselves, no pca)
 #' @param corr Whether to remove highly correlated features
-#' @return A preprocessing pipeline
-fit_preprocess <- function(df, pca = 1, corr = TRUE) {
+#' @return A vector of `caret::preProcess()` methods
+preprocess_methods <- function(pca = 1, corr = TRUE) {
   methods <- c("nzv", "center", "scale")
   if (corr) {
     methods <- c(methods, "corr")
@@ -21,7 +20,16 @@ fit_preprocess <- function(df, pca = 1, corr = TRUE) {
   if (pca < 1) {
     methods <- c(methods, "pca")
   }
-  caret::preProcess(df_feat(df), method = methods, thresh = pca)
+  return(methods)
+}
+
+#' Fit a preprocessing pipeline to the data
+#' @param df The input data frame
+#' @param pca The share of the variance the principal components should keep
+#' @param corr Whether to remove highly correlated features
+#' @return A preprocessing pipeline
+fit_preprocess <- function(df, pca = 1, corr = TRUE) {
+  caret::preProcess(df_feat(df), method = preprocess_methods(pca, corr), thresh = pca)
 }
 
 #' Apply a preprocessing pipeline to the data

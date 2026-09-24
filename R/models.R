@@ -2,46 +2,26 @@
 # == FUNCTIONS FOR TRAINING MODELS
 # ==========================================================
 
-#' Construct a list of specifications for fitting a model
-#' based on provided options
-get_fit_spec <- function(
-  df, pp_utils,
-  method, term_mode, term, weighting, pca, corr
-) {
+#' Construct a specification for fitting one model, based on the provided options
+#' @param df The input data frame
+#' @param method The `caret::train()` method to fit with
+#' @param weighting Whether to weight the epochs by the confidence of their label
+#' @param pca The share of the variance the principal components should keep
+#' @param corr Whether to remove highly correlated features ("corr" or "nocorr")
+#' @return A list with everything `caret::train()` needs for this model
+get_fit_spec <- function(df, method, weighting, pca, corr) {
   key <- paste(
-    method, term_mode, term, weighting,
-    ifelse(pca < 1, paste0("pca", pca), "nopca"), corr,
+    method, weighting, ifelse(pca < 1, paste0("pca", pca), "nopca"), corr,
     sep = "_"
   )
 
-  # Add terms (uses term option)
-  data <- make_data(df, key, pp_utils, TRUE)
-
-  # Add weights (uses weighting option)
-  data <- data |>
-    mutate(
-      weights = if (weighting == "weighted") {
-        df$activity_confidence
-      } else {
-        rep(1, nrow(df))
-      }
-    )
-
-  # Create formula (uses term_mode and term options)
-  if (term_mode == "inter" && term == "km_cluster") {
-    formula <- aggr_activity ~ (. - weights) * cluster
-  } else if (term_mode == "inter" && term == "km_dist") {
-    feat_names <- names(apply_preprocess(df, pp_utils$preproc))
-    dist_names <- grep("^km_dist_", names(data), value = TRUE)
-    # ==> START LLM https://chatgpt.com/share/6aaab81f-4d5c-83eb-bfac-021950015cd3
-    rhs <- paste0(
-      "(", paste(feat_names, collapse = " + "), ") * ",
-      "(", paste(dist_names, collapse = " + "), ")"
-    )
-    formula <- as.formula(paste("aggr_activity ~", rhs))
-    # ==> END LLM
+  # Weight the epochs by the confidence of their label (uses weighting option).
+  # Unlabelled epochs have no confidence by definition, but they are not less
+  # certain than the others, so they keep their full weight.
+  weights <- if (weighting == "weighted") {
+    ifelse(df$aggr_activity == "-", 1, df$activity_confidence)
   } else {
-    formula <- aggr_activity ~ (. - weights)
+    rep(1, nrow(df))
   }
 
   # Create extra arguments (uses method)
@@ -59,11 +39,20 @@ get_fit_spec <- function(
     list()
   )
 
-  return(list(data = data, formula = formula, weights = data$weights, method = method, extra_args = extra_args, pp_utils = pp_utils, key = key))
+  return(list(
+    x = df_feat(df), y = factor(df$aggr_activity), weights = weights,
+    method = method, extra_args = extra_args,
+    preprocess = preprocess_methods(pca, corr == "corr"), pca = pca, key = key
+  ))
 }
 
-#' Preprocess and fit a list of models based on the provided data and options
-fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
+#' Fit a list of models based on the provided data and options
+#' @param df The input data frame (with a user_id column to group the folds by)
+#' @param opts The options for training the models
+#' @param number The number of folds for cross-validation
+#' @param repeats The number of times to repeat the cross-validation
+#' @return A named list of the fitted models
+fit_models <- function(df, opts, number = 2, repeats = 1) {
   # Define train control with repeated cross-validation, keeping all epochs of
   # a user in the same fold, since the test data comes from users not seen in training
   # ==> START LLM https://chatgpt.com/share/6ab0e864-2034-83eb-be85-7968bad11e46
@@ -76,47 +65,34 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
     recursive = FALSE
   )
   # ==> END LLM
-  trcntr <- caret::trainControl(method = "cv", index = folds, verboseIter = FALSE, allowParallel = TRUE)
-
-  # Construct preprocessing utils, one set per combination of pca and corr options used
-  k <- length(unique(df$aggr_activity))
-  pp_opts <- distinct(opts, pca, corr)
-  pp_utils_per_opts <- pmap(pp_opts, \(pca, corr) {
-    pp <- fit_preprocess(df, pca = pca, corr = corr == "corr")
-    df_pp <- apply_preprocess(df, pp)
-    # only compute km if it's in the term options
-    if (any(opts$term == "km_cluster") || any(opts$term == "km_dist")) {
-      km <- kmeans(df_pp, centers = k, nstart = nstart)
-    } else {
-      km <- NULL
-    }
-    list(preproc = pp, km = km)
-  })
-  names(pp_utils_per_opts) <- paste(pp_opts$pca, pp_opts$corr)
 
   # Get specifications for training models
-  specs <- pmap(opts, \(method, term_mode, term, weighting, pca, corr) {
-    get_fit_spec(
-      df, pp_utils_per_opts[[paste(pca, corr)]],
-      method, term_mode, term, weighting, pca, corr
-    )
-  })
+  specs <- pmap(opts, \(method, weighting, pca, corr) get_fit_spec(df, method, weighting, pca, corr))
 
   # Fit the models
   models <- list()
-  i <- 1
-  for (spec in specs) {
+  for (i in seq_along(specs)) {
+    spec <- specs[[i]]
     cat("Fitting model", i, "/", length(specs), ":", spec$key, "...\n")
-    i <- i + 1
+
+    # caret fits the preprocessing within each fold, so the held out users play no
+    # part in it, and `predict()` applies it to new data by itself
+    trcntr <- caret::trainControl(
+      method = "cv", index = folds, verboseIter = FALSE, allowParallel = TRUE,
+      preProcOptions = list(thresh = spec$pca)
+    )
 
     #' Train a model with caret, passing extra arguments through
-    train_model <- function(formula, data, weights, method, trControl, ...) {
-      caret::train(formula, data = data, weights = weights, method = method, trControl = trControl, ...)
+    train_model <- function(x, y, weights, method, preProcess, trControl, ...) {
+      caret::train(
+        x = x, y = y, weights = weights, method = method,
+        preProcess = preProcess, trControl = trControl, ...
+      )
     }
 
     fit <- tryCatch(
       do.call(train_model, c(
-        list(spec$formula, spec$data, spec$weights, spec$method, trcntr),
+        list(spec$x, spec$y, spec$weights, spec$method, spec$preprocess, trcntr),
         spec$extra_args
       )),
       # ==> START LLM
@@ -132,31 +108,24 @@ fit_models <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
     }
   }
 
-  # Keep the preprocessing utils that belong to each fitted model
-  pp_utils <- set_names(map(specs, \(spec) spec$pp_utils), map_chr(specs, "key"))
-  pp_utils <- pp_utils[names(models)]
-
-  return(list(models = models, pp_utils = pp_utils))
+  return(models)
 }
 
-#' Fit all models and return the results
+#' Fit all models and return them with their results
 #' @param df The input data frame (with a user_id column to group the folds by)
 #' @param opts The options for training the models
 #' @param number The number of folds for cross-validation
 #' @param repeats The number of times to repeat the cross-validation
-#' @param nstart The number of random starts for k-means
-#' @return A list of fitted models, their results, and preprocessing utils
-fit_all <- function(df, opts, number = 2, repeats = 1, nstart = 2) {
-  fitted_models <- fit_models(df, opts, number, repeats, nstart)
-  models <- fitted_models$models
-  pp_utils <- fitted_models$pp_utils
+#' @return A list of the fitted models and their results
+fit_all <- function(df, opts, number = 2, repeats = 1) {
+  models <- fit_models(df, opts, number, repeats)
 
   results <- data.frame(
     accuracy = sapply(models, \(x) merge(x$results, x$bestTune)$Accuracy),
     kappa = sapply(models, \(x) merge(x$results, x$bestTune)$Kappa)
   )
 
-  return(list(models = models, results = results, pp_utils = pp_utils))
+  return(list(models = models, results = results))
 }
 
 #' Tabulate what varied while each model was trained: the values of its tuning
