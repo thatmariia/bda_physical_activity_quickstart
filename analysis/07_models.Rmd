@@ -1,0 +1,132 @@
+```{r, include = FALSE}
+source(here::here("setup.R"))
+for (file in list.files(here::here("R"), full.names = TRUE)) source(file)
+df_train <- readRDS(file.path(output_dir, "df_train.rds"))
+```
+
+
+# Model fitting
+
+Training models on the processed training data.
+
+## Define options for training models
+
+Define options for model training, which are used to construct different model configurations.
+
+| Method | Purpose |
+|---|---|
+| `method` | The value of parameter `method` in `caret::train()` |
+| `weighting` | Whether to use weighted or unweighted samples (defined by "activity_confidence") |
+| `pca` | The proportion of variance to retain in PCA (doesn't apply PCA when `pca` is 1) |
+| `corr` | Whether to remove highly correlated features before fitting or not |
+
+We do not include the following options:
+- `method`: "qda", "knn", "naive_bayes" because they are cumulatively expensive to compute, and they have shown worse performance on previous runs.
+
+```{r}
+# Define the options for model training
+opts <- expand_grid(
+  method = c("qda", "naive_bayes", "knn", "lda", "glmnet"),
+  weighting = c("unweighted"),
+  pca = c(1, 0.95, 0.6),
+  corr = c("corr", "nocorr")
+) |>
+  # only glmnet supports weighting
+  filter(!(weighting == "weighted" & method != "glmnet")) |>
+  # qda doesn't work with more features than this
+  filter(!(method == "qda" & pca > 0.6)) |>
+  # no need for pca lower than 0.95 for models other than qda
+  filter(!(method != "qda" & pca < 0.95)) |>
+  # glmnet shrinks the coefficients itself, so it has no need for pca
+  filter(!(method == "glmnet" & pca < 1)) |>
+  # glmnet shrinks correlated features together, so it does better with all of them,
+  # while the other methods need the correlated ones removed
+  filter((corr == "nocorr") == (method == "glmnet"))
+opts
+```
+
+## Training models
+
+```{r, fold = "Relevant functions for fitting models", code = readLines(here::here("R", "models.R"))}
+source(here::here("R", "models.R"))
+```
+
+```{r}
+if (!(on_kaggle && final_submission)) {
+  # Set up parallel processing to speed up model fitting
+  # ==> START LLM https://chatgpt.com/share/6aab8916-1138-83eb-b17f-1e899eec877c
+  library(doParallel)
+  cl <- makePSOCKcluster(n_cores())
+  registerDoParallel(cl)
+  # ==> END LLM
+}
+
+# Fit models
+fitted_models <- suppressWarnings(fit_all(df_train, opts, number = 12, repeats = 2))
+fitted_models$results
+
+if (!(on_kaggle && final_submission)) {
+  # Clean up parallel processing
+  stopCluster(cl)
+  registerDoSEQ()
+}
+```
+
+Finding the best model (based on accuracy).
+
+```{r}
+best_idx <- which.max(fitted_models$results$accuracy)
+best_fit <- list(
+  model = fitted_models$models[[best_idx]],
+  key = names(fitted_models$models)[[best_idx]]
+)
+
+cat("Best model:", best_fit$key, "\n")
+```
+
+## Visualizing training results
+
+Visualizing results of different models to see how the "best" model compares to the rest.
+
+```{r}
+# if more than 1 model
+if (length(fitted_models$models) > 1) {
+  # Extract the fold statistics for each model
+  rs <- resamples(fitted_models$models)
+  # box-and-whisker plot for the performance distribution
+  bwplot(rs)
+  # Compute the table of pairwise comparisons
+  summary(diff(rs))
+}
+```
+
+How each model was trained (tuning curves where relevant, spread over folds otherwise).
+
+```{r}
+#' Plot how every model was trained
+plot_training <- function(models) {
+  table <- training_table(models)
+
+  # the folds have no order, so only the tuning curves are connected
+  tuning <- filter(table, parameter != "fold")
+  curves <- if (nrow(tuning) > 0) geom_line(data = tuning) else NULL
+
+  ggplot(table, aes(value, accuracy, colour = setting)) +
+    geom_errorbar(aes(ymin = accuracy - accuracy_sd, ymax = accuracy + accuracy_sd), width = 0) +
+    curves +
+    geom_point() +
+    # the strips sit under the axis, so each panel names its own parameter there
+    facet_wrap(~ paste0(key, "\n", parameter),
+      scales = "free_x", strip.position = "bottom", labeller = label_wrap_gen(40)
+    ) +
+    guides(colour = if (all(table$setting == "none")) "none" else "legend") +
+    theme(strip.placement = "outside", strip.background = element_blank()) +
+    labs(x = NULL, y = "Cross-validated accuracy")
+}
+
+plot_training(fitted_models$models)
+```
+
+```{r, include = FALSE}
+saveRDS(best_fit, file.path(output_dir, "best_fit.rds"))
+```

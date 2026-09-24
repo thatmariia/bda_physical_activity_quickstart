@@ -24,16 +24,22 @@ cat("Number of test files:", length(all_filenames_test_acc) * 2)
 n_samples_per_epoch <- 128
 sample_rate <- 50
 
-future::plan(future::multisession, workers = n_cores())
-
-progressr::with_progress({
-  p <- progressr::progressor(along = all_filenames_train_acc)
-  df_train <- furrr::future_map_dfr(all_filenames_train_acc, \(filename) {
-    features <- parse_and_features(filename, train_dir, sample_labels, n_samples_per_epoch, sample_rate)
-    p()
-    features
+if (on_kaggle && final_submission) {
+  df_train <- map_dfr(all_filenames_train_acc, \(filename) {
+    parse_and_features(filename, train_dir, sample_labels, n_samples_per_epoch, sample_rate)
   })
-})
+} else {
+  future::plan(future::multisession, workers = n_cores())
+
+  progressr::with_progress({
+    p <- progressr::progressor(along = all_filenames_train_acc)
+    df_train <- furrr::future_map_dfr(all_filenames_train_acc, \(filename) {
+      features <- parse_and_features(filename, train_dir, sample_labels, n_samples_per_epoch, sample_rate)
+      p()
+      features
+    })
+  })
+}
 
 head(df_train)
 ```
@@ -41,14 +47,21 @@ head(df_train)
 For predicting on the test set later, we also construct a dataframe for test features.
 
 ```{r}
-progressr::with_progress({
-  p <- progressr::progressor(along = all_filenames_test_acc)
-  df_test <- furrr::future_map_dfr(all_filenames_test_acc, \(filename) {
-    features <- parse_and_features(filename, test_dir, sample_labels, n_samples_per_epoch, sample_rate)
-    p()
-    features
+if (on_kaggle && final_submission) {
+  df_test <- map_dfr(all_filenames_test_acc, \(filename) {
+    parse_and_features(filename, test_dir, sample_labels, n_samples_per_epoch, sample_rate)
   })
-})
+} else {
+  progressr::with_progress({
+    p <- progressr::progressor(along = all_filenames_test_acc)
+    df_test <- furrr::future_map_dfr(all_filenames_test_acc, \(filename) {
+      features <- parse_and_features(filename, test_dir, sample_labels, n_samples_per_epoch, sample_rate)
+      p()
+      features
+    })
+  })
+}
+
 df_test <- df_test |> select(-aggr_activity, -activity_confidence)
 
 future::plan(future::sequential)
@@ -70,9 +83,15 @@ df_test <- df_test |> select(-epoch)
 cat("Number of rows in test data:", nrow(df_test))
 ```
 
-## Cleaning training data
+## Cleaning data
 
-Removing rows with NA values.
+Removing columns unneccessary for fitting (`user_id` stays to split the cross-validation folds by user).
+
+```{r}
+df_train <- df_train |> select(-epoch, -sampleid, -exp_id)
+```
+
+Removing rows with NA values from training.
 
 ```{r}
 n_na <- sum(is.na(df_train))
@@ -80,10 +99,10 @@ cat("Number of NA values:", n_na)
 df_train <- df_train |> drop_na()
 ```
 
-Removing columns unneccessary for fitting (`user_id` stays to split the cross-validation folds by user).
+Removing rows with invalid activities.
 
 ```{r}
-df_train <- df_train |> select(-epoch, -sampleid, -exp_id)
+# df_train <- df_train |> filter(aggr_activity != "-")
 ```
 
 Checking if there are any linear combinations within features in preprocessed training data.
@@ -93,7 +112,7 @@ source(here::here("R", "preprocess.R"))
 ```
 
 ```{r}
-pp <- fit_preprocess(df_train)
+pp <- fit_preprocess(df_train, FALSE)
 df_train_pp <- apply_preprocess(df_train, pp)
 ```
 

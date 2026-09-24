@@ -11,8 +11,8 @@ best_fit <- readRDS(file.path(output_dir, "best_fit.rds"))
 
 ```{r}
 df_test[is.na(df_test)] <- 0
-df_test_pp <- make_data(df_test |> select(-Id), best_fit$key, best_fit$pp_utils)
-predictions <- predict(best_fit$model, df_test_pp)
+# the model preprocesses the features itself, the same way it did while training
+predictions <- predict(best_fit$model, newdata = df_test |> select(-Id))
 ```
 
 ## Formatting the submission file
