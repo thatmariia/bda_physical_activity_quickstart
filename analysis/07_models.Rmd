@@ -96,7 +96,7 @@ if (length(fitted_models$models) > 1) {
   # box-and-whisker plot for the performance distribution
   bwplot(rs)
   # Compute the table of pairwise comparisons
-summary(diff(rs))
+  summary(diff(rs))
 }
 ```
 

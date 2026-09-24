@@ -151,7 +151,10 @@ training_table <- function(models) {
     settings <- if (length(others) == 0) {
       "none"
     } else {
-      fit$results |> select(all_of(others)) |> imap(\(x, name) paste0(name, "=", x)) |> pmap_chr(paste)
+      fit$results |>
+        select(all_of(others)) |>
+        imap(\(x, name) paste0(name, "=", x)) |>
+        pmap_chr(paste)
     }
     value <- as.numeric(fit$results[[x_parameter]])
 
